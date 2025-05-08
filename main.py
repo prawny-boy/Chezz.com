@@ -1,80 +1,104 @@
-"""Chezz.com is a pygame clone of Chess.com, made as a fun project."""
-# Importing/Dependencies
+# IMPORTS/DEPENDENCIES
 import pygame
-import pygame_gui as gui
-from sys import exit, dont_write_bytecode
+import chess
 
-# Initalisations
+# INITIASATIONS
 pygame.init()
-clock = pygame.time.Clock()
+pygame.font.init()
+pygame.mixer.init()
 
-# Sprites
+# SPRITES
 logo = pygame.image.load("Assets/Sprites/logo.png")
 icon = pygame.image.load("Assets/Sprites/icon.png")
 icon_pawn = pygame.image.load("Assets/Sprites/iconpawn.png")
 company_logo = pygame.image.load("Assets/Sprites/company.png")
 
 # Constants
-SETUP = [
-    ["R", "N", "B", "Q", "K", "B", "N", "R"],
-    ["P", "P", "P", "P", "P", "P", "P", "P"],
-    [" ", " ", " ", " ", " ", " ", " ", " "],
-    [" ", " ", " ", " ", " ", " ", " ", " "],
-    [" ", " ", " ", " ", " ", " ", " ", " "],
-    [" ", " ", " ", " ", " ", " ", " ", " "],
-    ["p", "p", "p", "p", "p", "p", "p", "p"],
-    ["r", "n", "b", "q", "k", "b", "n", "r"],
-] # Black is uppercase, white is lowercase
-
-# figure out way to define movements in pieces
-PIECES = {}
-ORIGINAL_SPRITES = {} # piece: sprite
-
-# Pygame Constants
+FRAME_RATE = 60
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-FRAME_RATE = 60 # Delta Time?
-GAME_NAME = "Chezz.com (Cheese Chess)"
 
-# Variables
-dont_write_bytecode = True
+# Colours
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GREEN = (0, 255, 0)
+BrankN = pygame.Color('#b58863')
+BEIGE = pygame.Color('#f0d9b5')
 
-# Classes
+BOARD_CONFIG = [
+    ['rook', 'knight', 'bishop', 'king', 'queen', 'bishop', 'knight', 'rook'], 
+    ['pawn', 'pawn', 'pawn', 'pawn', 'pawn', 'pawn', 'pawn', 'pawn'],
+    [None, None, None, None, None, None, None, None], 
+    [None, None, None, None, None, None, None, None], 
+    [None, None, None, None, None, None, None, None], 
+    [None, None, None, None, None, None, None, None], 
+    ['pawn', 'pawn', 'pawn', 'pawn', 'pawn', 'pawn', 'pawn', 'pawn'], 
+    ['rook', 'knight', 'bishop', 'king', 'queen', 'bishop', 'knight', 'rook']
+]
+
+# CLASSES
 class BoardLocation:
-    def __init__(self, row:int, column:int):
-        self.row = row
-        self.column = column
+    def __init__(self, rank:int, file:int):
+        self.rank = rank
+        self.file = file
 
 class MovementPattern:
     def __init__(self, name:str, pattern:list[BoardLocation], movement_type:str):
-        self.movement_type = movement_type # "normal", "jump" means ignore pieces in the way
+        self.movement_type = movement_type # "normal", "king" can move into check,"jump" means ignore pieces in the way
         self.name = name
         self.pattern = pattern # list of tuples (x, y) of what to add to the current position (0, 0)
     
     def get_resulting_positions(self, location:BoardLocation): # this does not check for board limits or pieces in the way
         positions = []
         for move in self.pattern:
-            new_row = location.row + move.row
-            new_column = location.column + move.column
-            positions.append(BoardLocation(new_row, new_column))
+            new_rank = location.rank + move.rank
+            new_file = location.file + move.file
+            positions.append(BoardLocation(new_rank, new_file))
         return positions
 
     def get_movement_type(self):
         return self.movement_type
 
+class ChessBoard:
+    def __init__(self, x, y, length, dark, light):
+        self.x = x - length / 2
+        self.y = y - length / 2
+        self.s_length = length / 8
+        self.dark = dark
+        self.light = light
+        self.ranks_locations, self.files_locations = self.calculate_positions()
+
+    def calculate_positions(self):
+        """Generate RANKS and FILES dictionaries based on board position."""
+        ranks = {i + 1: int(self.y + (7 - i) * self.s_length + self.s_length / 2) for i in range(8)}
+        files = {chr(97 + j): int(self.x + j * self.s_length + self.s_length / 2) for j in range(8)}
+        return ranks, files
+        
+    def draw(self, screen):
+        x = self.x
+        y = self.y
+        l = self.s_length
+        for i in range(8):
+            for j in range(8):
+                if (i + j) % 2 == 0:
+                    color = self.dark
+                else:
+                    color = self.light
+                pygame.draw.rect(screen, color, (x + i * l, y + j * l, l, l))
+
 class Piece:
-    def __init__(self, row, column, movement:MovementPattern, image:pygame.Surface):
-        self.row = row
-        self.column = column
+    def __init__(self, rank, file, movement:MovementPattern, image:pygame.Surface):
+        self.rank = rank
+        self.file = file
         self.movement = movement
         self.image = image
     
     def draw(self, screen:pygame.Surface):
         pass
 
-    def move(self, row:int, column:int):
-        self.row = row
-        self.column = column
+    def move(self, rank:int, file:int):
+        self.rank = rank
+        self.file = file
 
 # Functions
 def create_board():
@@ -116,37 +140,28 @@ def splash_screen(icons_to_show:list[pygame.Surface]):
         pygame.display.flip()
         clock.tick(FRAME_RATE)
 
+def central_rect(x, y, length, width):
+    return pygame.Rect(x - width / 2, y - length / 2, length, width)
+
 if __name__ == "__main__":
-    # Screen
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
-    pygame.display.set_caption(GAME_NAME)
-    pygame.display.set_icon(icon_pawn)
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    pygame.display.set_caption("Chezz.com")
+    pygame.display.set_icon(icon)
+    clock = pygame.time.Clock()
 
-    manager = gui.UIManager((SCREEN_WIDTH, SCREEN_HEIGHT))
+    splash_screen([company_logo, logo])
 
-    hello_button = gui.elements.UIButton(
-        relative_rect=pygame.Rect((350, 275), (100, 50)),
-        text='Say Hello',
-        manager=manager)
+    # Create the chessboard and pieces
+    chessboard = ChessBoard(x=SCREEN_WIDTH/2, y=SCREEN_HEIGHT/2, length=400, dark=BrankN, light=BEIGE)
 
-    # Splash Screen
-    splash_screen([icon, company_logo])
-
-    # Game Loop
     while True:
-        time_delta = clock.tick(FRAME_RATE) / 1000
+        clock.tick(FRAME_RATE)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                print(pygame.mouse.get_pos())
-            
-            manager.process_events(event)
-        
-        manager.update(time_delta)
 
-        screen.fill((0, 0, 0))
-        manager.draw_ui(screen)
-
-        pygame.display.update()
+        screen.fill(BLACK)
+        chessboard.draw(screen)
+        pygame.draw.rect(screen, GREEN, central_rect(chessboard.files_locations["a"], chessboard.ranks_locations[1], 10, 10))
+        pygame.display.flip()

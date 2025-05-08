@@ -1,0 +1,35 @@
+import chess
+
+board = chess.Board()
+
+while True:
+    print()
+    print(board)
+    print()
+    if board.turn == chess.WHITE:
+        print("WHITE")
+    else:
+        print("BLACK")
+    move = input("Enter your move: ")
+    try:
+        board.push_san(move)
+    except ValueError:
+        print("Invalid move. Try again.")
+        continue
+    else:
+        if board.is_checkmate():
+            print("Checkmate!")
+            break
+        elif board.is_stalemate():
+            print("Stalemate!")
+            break
+        elif board.is_insufficient_material():
+            print("Insufficient material!")
+            break
+        elif board.is_seventyfive_moves():
+            print("Draw by 75-move rule!")
+            break
+        elif board.is_fivefold_repetition():
+            print("Draw by fivefold repetition!")
+            break
+
