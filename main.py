@@ -58,18 +58,23 @@ class ChessBoard:
                 pygame.draw.rect(screen, color, (x + i * l, y + j * l, l, l))
 
 class Piece:
-    def __init__(self, x, y, color, type):
-        self.x = x
-        self.y = y
-        self.color = color
-        self.type = type
+    def __init__(self, row, column, movement:MovementPattern, image:pygame.Surface):
+        self.row = row
+        self.column = column
+        self.movement = movement
+        self.image = image
+    
+    def draw(self, screen:pygame.Surface):
+        pass
 
-    def draw(self, screen):
-        if self.type == "pawn":
-            screen.blit(icon_pawn, (self.x, self.y))
+    def move(self, row:int, column:int):
+        self.row = row
+        self.column = column
 
+# Functions
+def create_board():
+    pass
 
-# FUNCTIONS
 def splash_screen(icons_to_show:list[pygame.Surface]):
     alpha = 0
     dir = "+"
