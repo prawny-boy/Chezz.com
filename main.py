@@ -40,13 +40,41 @@ GAME_NAME = "Chezz.com (Cheese Chess)"
 dont_write_bytecode = True
 
 # Classes
+class BoardLocation:
+    def __init__(self, row:int, column:int):
+        self.row = row
+        self.column = column
+
+class MovementPattern:
+    def __init__(self, name:str, pattern:list[BoardLocation], movement_type:str):
+        self.movement_type = movement_type # "normal", "jump" means ignore pieces in the way
+        self.name = name
+        self.pattern = pattern # list of tuples (x, y) of what to add to the current position (0, 0)
+    
+    def get_resulting_positions(self, location:BoardLocation): # this does not check for board limits or pieces in the way
+        positions = []
+        for move in self.pattern:
+            new_row = location.row + move.row
+            new_column = location.column + move.column
+            positions.append(BoardLocation(new_row, new_column))
+        return positions
+
+    def get_movement_type(self):
+        return self.movement_type
+
 class Piece:
-    def __init__(self, x, y, color, movement, image):
-        self.x = x
-        self.y = y
-        self.color = color
+    def __init__(self, row, column, movement:MovementPattern, image:pygame.Surface):
+        self.row = row
+        self.column = column
         self.movement = movement
         self.image = image
+    
+    def draw(self, screen:pygame.Surface):
+        pass
+
+    def move(self, row:int, column:int):
+        self.row = row
+        self.column = column
 
 # Functions
 def create_board():
