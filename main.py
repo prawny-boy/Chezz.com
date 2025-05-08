@@ -1,7 +1,7 @@
 """Chezz.com is a pygame clone of Chess.com, made as a fun project."""
 # Importing/Dependencies
 import pygame
-import pygame_gui
+import pygame_gui as gui
 from sys import exit, dont_write_bytecode
 
 # Initalisations
@@ -11,6 +11,7 @@ clock = pygame.time.Clock()
 # Sprites
 logo = pygame.image.load("Assets/Sprites/logo.png")
 icon = pygame.image.load("Assets/Sprites/icon.png")
+icon_pawn = pygame.image.load("Assets/Sprites/iconpawn.png")
 company_logo = pygame.image.load("Assets/Sprites/company.png")
 
 # Constants
@@ -89,21 +90,35 @@ def splash_screen(icons_to_show:list[pygame.Surface]):
 
 if __name__ == "__main__":
     # Screen
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
     pygame.display.set_caption(GAME_NAME)
-    pygame.display.set_icon(icon)
+    pygame.display.set_icon(icon_pawn)
+
+    manager = gui.UIManager((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+    hello_button = gui.elements.UIButton(
+        relative_rect=pygame.Rect((350, 275), (100, 50)),
+        text='Say Hello',
+        manager=manager)
 
     # Splash Screen
     splash_screen([icon, company_logo])
 
     # Game Loop
     while True:
+        time_delta = clock.tick(FRAME_RATE) / 1000
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 print(pygame.mouse.get_pos())
+            
+            manager.process_events(event)
         
-        pygame.display.flip()
-        clock.tick(FRAME_RATE)
+        manager.update(time_delta)
+
+        screen.fill((0, 0, 0))
+        manager.draw_ui(screen)
+
+        pygame.display.update()
