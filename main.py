@@ -20,7 +20,7 @@ def load_piece_sprites():
     try:
         for color in ['w', 'b']:
             for piece_char, piece_type in piece_types.items():
-                filename = f"Assets/Sprites/{color}{piece_char}.png"
+                filename = f"Assets/Sprites/{color}_{piece_char}.png"
                 if os.path.exists(filename):
                     pieces[(chess.WHITE if color == 'w' else chess.BLACK, piece_type)] = pygame.image.load(filename)
                 else:
