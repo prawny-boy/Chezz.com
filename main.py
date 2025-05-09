@@ -35,7 +35,7 @@ def load_piece_sprites():
     
     return pieces
 
-def create_placeholder_piece(color, piece_char):
+def create_placeholder_piece(color:pygame.Color, piece_char:str):
     surf = pygame.Surface((50, 50), pygame.SRCALPHA)
     color_rgb = WHITE if color == 'w' else BLACK
     pygame.draw.circle(surf, color_rgb, (25, 25), 20)
@@ -122,6 +122,29 @@ def coords_to_square(x, y):
         return chess.square(file_idx, rank_idx)
     return None
 
+# CLASSES
+class BoardLocation:
+    def __init__(self, rank:int, file:int):
+        self.rank = rank
+        self.file = file
+
+class MovementPattern:
+    def __init__(self, name:str, pattern:list[BoardLocation], movement_type:str):
+        self.movement_type = movement_type # "normal", "king" can move into check,"jump" means ignore pieces in the way
+        self.name = name
+        self.pattern = pattern # list of tuples (x, y) of what to add to the current position (0, 0)
+    
+    def get_resulting_positions(self, location:BoardLocation): # this does not check for board limits or pieces in the way
+        positions = []
+        for move in self.pattern:
+            new_rank = location.rank + move.rank
+            new_file = location.file + move.file
+            positions.append(BoardLocation(new_rank, new_file))
+        return positions
+
+    def get_movement_type(self):
+        return self.movement_type
+
 class ChessBoard:
     def __init__(self, x, y, length, dark, light):
         self.x = x
@@ -129,6 +152,12 @@ class ChessBoard:
         self.s_length = length / 8
         self.dark = dark
         self.light = light
+    
+    def calculate_positions(self):
+        """Generate RANKS and FILES dictionaries based on board position."""
+        ranks = {i + 1: int(self.y + (7 - i) * self.s_length + self.s_length / 2) for i in range(8)}
+        files = {chr(97 + j): int(self.x + j * self.s_length + self.s_length / 2) for j in range(8)}
+        return ranks, files
         
     def draw(self, screen):
         for i in range(8):
@@ -150,13 +179,13 @@ class Piece:
         self.legal_moves = []
         self.is_selected = False
     
-    def update_legal_moves(self, board):
+    def update_legal_moves(self, board:chess.Board):
         self.legal_moves = []
         for move in board.legal_moves:
             if move.from_square == self.square:
                 self.legal_moves.append(move.to_square)
     
-    def draw(self, screen):
+    def draw(self, screen:pygame.Surface):
         screen.blit(self.sprite, self.rect)
         
     def draw_legal_moves(self, screen, chessboard, board):
@@ -293,6 +322,9 @@ pygame.display.set_icon(icon)
 clock = pygame.time.Clock()
 
 if __name__ == "__main__":
+    splash_screen([company_logo, logo])
+
+    # Create the chessboard and pieces
     chessboard = ChessBoard(x=100, y=100, length=BOARD_SIZE, dark=BROWN, light=BEIGE)
     RANKS, FILES = calculate_board_coordinates(100, 100, BOARD_SIZE)
     
