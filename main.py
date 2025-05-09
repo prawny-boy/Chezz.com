@@ -1,9 +1,7 @@
-# IMPORTS/DEPENDENCIES
 import pygame
 import chess
 import os
 
-# INITIASATIONS
 pygame.init()
 pygame.font.init()
 pygame.mixer.init()
@@ -22,7 +20,7 @@ def load_piece_sprites():
     try:
         for color in ['w', 'b']:
             for piece_char, piece_type in piece_types.items():
-                filename = f"Assets/Sprites/{color}_{piece_char}.png"
+                filename = f"Assets/Sprites/{color}{piece_char}.png"
                 if os.path.exists(filename):
                     pieces[(chess.WHITE if color == 'w' else chess.BLACK, piece_type)] = pygame.image.load(filename)
                 else:
@@ -54,11 +52,14 @@ company_logo = pygame.image.load("Assets/Sprites/company.png")
 FRAME_RATE = 60
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 800
+HIGHLIGHT_RADIUS = 7.5
+PIECE_SIZE = 50
+BOARD_SIZE = 600
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
-BrankN = pygame.Color('#b58863')
+BROWN = pygame.Color('#b58863')
 BEIGE = pygame.Color('#f0d9b5')
 HIGHLIGHT = pygame.Color('#8877DD99')
 MOVE_HIGHLIGHT = pygame.Color('#5fa14460')
@@ -71,27 +72,63 @@ BOARD_CONFIG = [
     [None, None, None, None, None, None, None, None], 
     [None, None, None, None, None, None, None, None], 
     [None, None, None, None, None, None, None, None], 
-    ['pawn', 'pawn', 'pawn', 'pawn', 'pawn', 'pawn', 'pawn', 'pawn'], 
-    ['rook', 'knight', 'bishop', 'king', 'queen', 'bishop', 'knight', 'rook']
-    ]
+    ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'], 
+    ['R', 'N', 'B', 'K', 'Q', 'B', 'N', 'R']
+]
 
-RANKS = {1: 575, 2: 525, 3: 475, 4: 425, 5: 375, 6: 325, 7: 275, 8: 225}
-FILES = {'a': 225, 'b': 275, 'c': 325, 'd': 375, 'e': 425, 'f': 475, 'g': 525, 'h': 575}
+def calculate_board_coordinates(board_x, board_y, board_size):
+    square_size = board_size / 8
+    ranks = {}
+    files = {}
+    
+    for i in range(8):
+        rank_num = 8 - i
+        rank_y = board_y + (i + 0.5) * square_size
+        ranks[rank_num] = rank_y
+        
+        file_letter = chess.FILE_NAMES[i]
+        file_x = board_x + (i + 0.5) * square_size
+        files[file_letter] = file_x
+    
+    return ranks, files
+
+RANKS = {}
+FILES = {}
+
+def square_to_coords(square):
+    file_idx = chess.square_file(square)
+    rank_idx = chess.square_rank(square)
+    file_letter = chess.FILE_NAMES[file_idx]
+    rank_number = rank_idx + 1
+    return FILES[file_letter], RANKS[rank_number]
+
+def coords_to_square(x, y):
+    file_letter = None
+    rank_number = None
+    
+    for file, file_x in FILES.items():
+        if abs(x - file_x) < 25:
+            file_letter = file
+            break
+    
+    for rank, rank_y in RANKS.items():
+        if abs(y - rank_y) < 25:
+            rank_number = rank
+            break
+    
+    if file_letter and rank_number:
+        file_idx = chess.FILE_NAMES.index(file_letter)
+        rank_idx = rank_number - 1
+        return chess.square(file_idx, rank_idx)
+    return None
 
 class ChessBoard:
     def __init__(self, x, y, length, dark, light):
-        self.x = x + length / 2
-        self.y = y + length / 2
+        self.x = x
+        self.y = y
         self.s_length = length / 8
         self.dark = dark
         self.light = light
-        self.ranks_locations, self.files_locations = self.calculate_positions()
-
-    def calculate_positions(self):
-        """Generate RANKS and FILES dictionaries based on board position."""
-        ranks = {i + 1: int(self.y + (7 - i) * self.s_length + self.s_length / 2) for i in range(8)}
-        files = {chr(97 + j): int(self.x + j * self.s_length + self.s_length / 2) for j in range(8)}
-        return ranks, files
         
     def draw(self, screen):
         for i in range(8):
@@ -103,18 +140,91 @@ class ChessBoard:
                 pygame.draw.rect(screen, color, (self.x + i * self.s_length, self.y + j * self.s_length, self.s_length, self.s_length))
 
 class Piece:
-    def __init__(self, x, y, color, type):
-        self.x = x
-        self.y = y
-        self.color = color
-        self.type = type
-
+    def __init__(self, chess_piece, sprite, rect, square):
+        self.chess_piece = chess_piece
+        self.colour = chess_piece.color
+        self.type = chess_piece.piece_type
+        self.sprite = sprite
+        self.rect = rect
+        self.square = square
+        self.legal_moves = []
+        self.is_selected = False
+    
+    def update_legal_moves(self, board):
+        self.legal_moves = []
+        for move in board.legal_moves:
+            if move.from_square == self.square:
+                self.legal_moves.append(move.to_square)
+    
     def draw(self, screen):
-        if self.type == "pawn":
-            screen.blit(icon_pawn, (self.x, self.y))
+        screen.blit(self.sprite, self.rect)
+        
+    def draw_legal_moves(self, screen, chessboard, board):
+        if self.is_selected:
+            pygame.draw.rect(screen, GREEN, self.rect, 3)
+            
+            for square in self.legal_moves:
+                x, y = square_to_coords(square)
+                
+                is_capture = board.piece_at(square) is not None
+                
+                # Check for en passant capture
+                if self.type == chess.PAWN and not is_capture:
+                    # Get the en passant square from the board
+                    if board.ep_square is not None and square == board.ep_square:
+                        is_capture = True
+                
+                if is_capture:
+                    highlight_rect = central_rect(x, y, chessboard.s_length, chessboard.s_length)
+                    pygame.draw.rect(screen, CAPTURE_HIGHLIGHT, highlight_rect)
+                    pygame.draw.circle(screen, GREEN, (x, y), HIGHLIGHT_RADIUS)
+                else:
+                    highlight_rect = central_rect(x, y, chessboard.s_length, chessboard.s_length)
+                    pygame.draw.rect(screen, MOVE_HIGHLIGHT, highlight_rect)
+                    pygame.draw.circle(screen, GREEN, (x, y), HIGHLIGHT_RADIUS)
+    
+    def move_to(self, new_square, board):
+        move = None
+        
+        if self.type == chess.PAWN:
+            end_rank = chess.square_rank(new_square)
+            if (self.colour == chess.WHITE and end_rank == 7) or \
+               (self.colour == chess.BLACK and end_rank == 0):
+                move = chess.Move(self.square, new_square, promotion=chess.QUEEN)
+        
+        if move is None:
+            move = chess.Move(self.square, new_square)
+        
+        if move in board.legal_moves:
+            # Check for en passant capture before making the move
+            is_en_passant = self.type == chess.PAWN and board.ep_square == new_square
+            
+            en_passant_target = None
+            if is_en_passant:
+                # Calculate the square where the captured pawn is located
+                if self.colour == chess.WHITE:
+                    en_passant_target = new_square - 8  # Pawn is one rank below
+                else:
+                    en_passant_target = new_square + 8  # Pawn is one rank above
+            
+            # Make the move on the chess board
+            board.push(move)
+            self.square = new_square
+            x, y = square_to_coords(new_square)
+            self.rect = central_rect(x, y, self.rect.width, self.rect.height)
+            self.update_legal_moves(board)
+            
+            try:
+                if board.is_capture(move) or is_en_passant:
+                    pygame.mixer.Sound("Assets/Sounds/capture.wav").play()
+                else:
+                    pygame.mixer.Sound("Assets/Sounds/move.wav").play()
+            except:
+                pass
+                
+            return True, en_passant_target
+        return False, None
 
-
-# FUNCTIONS
 def splash_screen(icons_to_show:list[pygame.Surface]):
     alpha = 0
     dir = "+"
@@ -182,14 +292,15 @@ pygame.display.set_caption("Chezz.com")
 pygame.display.set_icon(icon)
 clock = pygame.time.Clock()
 
-chessboard = ChessBoard(x=0, y=0, length=400, dark=BROWN, light=BEIGE)
-board = chess.Board()
-piece = Piece(50, 50, "white", "pawn")
-
 if __name__ == "__main__":
-    #splash_screen([company_logo, logo])
+    chessboard = ChessBoard(x=100, y=100, length=BOARD_SIZE, dark=BROWN, light=BEIGE)
+    RANKS, FILES = calculate_board_coordinates(100, 100, BOARD_SIZE)
+    
+    board = chess.Board()
+    pieces = create_pieces_from_board(board)
+    selected_piece = None
+    
     while True:
-        clock.tick(FRAME_RATE)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -262,6 +373,27 @@ if __name__ == "__main__":
 
         screen.fill(BLACK)
         chessboard.draw(screen)
-        pygame.draw.rect(screen, GREEN, central_rect(FILES['a'], RANKS[1], 10, 10))
+        
+        if selected_piece:
+            selected_piece.draw_legal_moves(screen, chessboard, board)
+        
+        for piece in pieces:
+            piece.draw(screen)
+        
+        font = pygame.font.SysFont("Arial", 24)
+        turn_text = font.render("Turn: " + ("White" if board.turn == chess.WHITE else "Black"), True, WHITE)
+        screen.blit(turn_text, (10, 10))
+        
+        if board.is_check():
+            check_text = font.render("CHECK!", True, (255, 0, 0))
+            screen.blit(check_text, (10, 40))
+        
+        if board.is_checkmate():
+            end_text = font.render("CHECKMATE! " + ("Black" if board.turn == chess.WHITE else "White") + " wins!", True, (255, 0, 0))
+            screen.blit(end_text, (SCREEN_WIDTH // 2 - 150, 10))
+        elif board.is_stalemate():
+            end_text = font.render("STALEMATE! Draw game.", True, (255, 0, 0))
+            screen.blit(end_text, (SCREEN_WIDTH // 2 - 120, 10))
+        
         pygame.display.flip()
         clock.tick(FRAME_RATE)
