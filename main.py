@@ -6,45 +6,6 @@ pygame.init()
 pygame.font.init()
 pygame.mixer.init()
 
-def load_piece_sprites():
-    pieces = {}
-    piece_types = {
-        'p': chess.PAWN,
-        'n': chess.KNIGHT,
-        'b': chess.BISHOP,
-        'r': chess.ROOK,
-        'q': chess.QUEEN,
-        'k': chess.KING
-    }
-    
-    try:
-        for color in ['w', 'b']:
-            for piece_char, piece_type in piece_types.items():
-                filename = f"Assets/Sprites/{color}{piece_char}.png"
-                if os.path.exists(filename):
-                    pieces[(chess.WHITE if color == 'w' else chess.BLACK, piece_type)] = pygame.image.load(filename)
-                else:
-                    pieces[(chess.WHITE if color == 'w' else chess.BLACK, piece_type)] = create_placeholder_piece(color, piece_char)
-    except:
-        for color in [chess.WHITE, chess.BLACK]:
-            for piece_type in piece_types.values():
-                pieces[(color, piece_type)] = create_placeholder_piece(
-                    'w' if color == chess.WHITE else 'b',
-                    next(k for k, v in piece_types.items() if v == piece_type)
-                )
-    
-    return pieces
-
-def create_placeholder_piece(color:pygame.Color, piece_char:str):
-    surf = pygame.Surface((50, 50), pygame.SRCALPHA)
-    color_rgb = WHITE if color == 'w' else BLACK
-    pygame.draw.circle(surf, color_rgb, (25, 25), 20)
-    font = pygame.font.SysFont("Arial", 24, bold=True)
-    text = font.render(piece_char.upper(), True, BLACK if color == 'w' else WHITE)
-    text_rect = text.get_rect(center=(25, 25))
-    surf.blit(text, text_rect)
-    return surf
-
 logo = pygame.image.load("Assets/Sprites/logo.png")
 icon = pygame.image.load("Assets/Sprites/icon.png")
 company_logo = pygame.image.load("Assets/Sprites/company.png")
@@ -76,6 +37,46 @@ BOARD_CONFIG = [
     ['R', 'N', 'B', 'K', 'Q', 'B', 'N', 'R']
 ]
 
+# FUNCTIONS
+def load_piece_sprites():
+    pieces = {}
+    piece_types = {
+        'p': chess.PAWN,
+        'n': chess.KNIGHT,
+        'b': chess.BISHOP,
+        'r': chess.ROOK,
+        'q': chess.QUEEN,
+        'k': chess.KING
+    }
+    
+    try:
+        for color in ['w', 'b']:
+            for piece_char, piece_type in piece_types.items():
+                filename = f"Assets/Sprites/{color}{piece_char}.png"
+                if os.path.exists(filename): 
+                    pieces[(chess.WHITE if color == 'w' else chess.BLACK, piece_type)] = pygame.image.load(filename)
+                else:
+                    pieces[(chess.WHITE if color == 'w' else chess.BLACK, piece_type)] = create_placeholder_piece(color, piece_char)
+    except:
+        for color in [chess.WHITE, chess.BLACK]:
+            for piece_type in piece_types.values():
+                pieces[(color, piece_type)] = create_placeholder_piece(
+                    'w' if color == chess.WHITE else 'b',
+                    next(k for k, v in piece_types.items() if v == piece_type)
+                )
+    
+    return pieces
+
+def create_placeholder_piece(color:pygame.Color, piece_char:str):
+    surf = pygame.Surface((50, 50), pygame.SRCALPHA)
+    color_rgb = WHITE if color == 'w' else BLACK
+    pygame.draw.circle(surf, color_rgb, (25, 25), 20)
+    font = pygame.font.SysFont("Arial", 24, bold=True)
+    text = font.render(piece_char.upper(), True, BLACK if color == 'w' else WHITE)
+    text_rect = text.get_rect(center=(25, 25))
+    surf.blit(text, text_rect)
+    return surf
+
 def calculate_board_coordinates(board_x, board_y, board_size):
     square_size = board_size / 8
     ranks = {}
@@ -91,9 +92,6 @@ def calculate_board_coordinates(board_x, board_y, board_size):
         files[file_letter] = file_x
     
     return ranks, files
-
-RANKS = {}
-FILES = {}
 
 def square_to_coords(square):
     file_idx = chess.square_file(square)
@@ -293,8 +291,6 @@ def splash_screen(icons_to_show:list[pygame.Surface]):
 def central_rect(x, y, width, height):
     return pygame.Rect(x - width / 2, y - height / 2, width, height)
 
-piece_sprites = load_piece_sprites()
-
 def create_pieces_from_board(board):
     pieces = []
     for square in chess.SQUARES:
@@ -325,9 +321,9 @@ if __name__ == "__main__":
     splash_screen([company_logo, logo])
 
     # Create the chessboard and pieces
+    piece_sprites = load_piece_sprites()
     chessboard = ChessBoard(x=100, y=100, length=BOARD_SIZE, dark=BROWN, light=BEIGE)
     RANKS, FILES = calculate_board_coordinates(100, 100, BOARD_SIZE)
-    
     board = chess.Board()
     pieces = create_pieces_from_board(board)
     selected_piece = None
