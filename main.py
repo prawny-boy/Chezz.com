@@ -20,7 +20,7 @@ SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 HIGHLIGHT_RADIUS = 7.5
 PIECE_SIZE = 50
-BOARD_SIZE = 300
+BOARD_SIZE = 500
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -32,14 +32,14 @@ MOVE_HIGHLIGHT = _pygame.Color('#5fa14460')
 CAPTURE_HIGHLIGHT = _pygame.Color('#d42a2a60')
 
 BOARD_CONFIG = [
-    ['r', 'n', 'b', 'k', 'q', 'b', 'n', 'r'], 
-    ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
-    [None, None, None, None, None, None, None, None], 
-    [None, None, None, None, None, None, None, None], 
-    [None, None, None, None, None, None, None, None], 
-    [None, None, None, None, None, None, None, None], 
+    ['R', 'N', 'B', 'K', 'Q', 'B', 'N', 'R'],
     ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'], 
-    ['R', 'N', 'B', 'K', 'Q', 'B', 'N', 'R']
+    [None, None, None, None, None, None, None, None], 
+    [None, None, None, None, None, None, None, None], 
+    [None, None, None, None, None, None, None, None], 
+    [None, None, None, None, None, None, None, None], 
+    ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
+    ['r', 'n', 'b', 'k', 'q', 'b', 'n', 'r']
 ]
 
 # CLASSES
@@ -177,6 +177,7 @@ class Piece:
         self.square = new_square
     
     def draw(self, screen:_pygame.Surface, coordinates:tuple[int, int]):
+        self.sprite = _pygame.transform.scale(self.sprite, (PIECE_SIZE, PIECE_SIZE))
         screen.blit(self.sprite, (coordinates[0] - PIECE_SIZE / 2, coordinates[1] - PIECE_SIZE / 2))
         
     def draw_legal_moves(self, screen, coordinates:tuple[int, int]):
@@ -201,8 +202,8 @@ class ChessBoard:
         self.selected_square = None
     
     def calculate_positions(self):
-        ranks = [int(self.y + (7 - i) * self.size + self.size / 2) for i in range(7, -1, -1)]
-        files = [int(self.x + j * self.size + self.size / 2) for j in range(8)]
+        files = [int(self.y + (7 - i) * self.size + self.size / 2) for i in range(7, -1, -1)]
+        ranks = [int(self.x + j * self.size + self.size / 2) for j in range(8)]
         print(ranks, files)
         return ranks, files
 
@@ -214,15 +215,15 @@ class ChessBoard:
         pieces = []
         for rank in range(8):
             for file in range(8):
-                piece_name = starting_configuration[file][rank]
+                piece_name = starting_configuration[rank][file]
                 if piece_name is not None:
                     pieces.append(Piece(**pieces_dict[piece_name.lower()], name=piece_name, square=BoardLocation(rank, file)))
-
-        print(pieces)
+                    print(f"Piece {piece_name} created at {rank}, {file}")
+            
         return pieces
     
     def square_to_coordinates(self, square:BoardLocation):
-        return (self.ranks_locations[square.get_rank()], self.files_locations[square.get_file()])
+        return (self.ranks_locations[square.get_file()], self.files_locations[square.get_rank()])
 
     def coordinates_to_square(self, coordinates:tuple[int, int]):
         return BoardLocation(self.ranks_locations.index(coordinates[0]), self.files_locations.index(coordinates[1]))
@@ -237,15 +238,16 @@ class ChessBoard:
             piece.update([piece.square for piece in self.all_pieces]) # get all the pieces locations
         # update selected square
         
-    def draw(self, screen):
+    def draw(self, screen, perspective:str = "white"):
         # draw the board
         for rank in range(8):
             for file in range(8):
+
                 if (rank + file) % 2 == 0:
-                    color = self.dark
-                else:
                     color = self.light
-                _pygame.draw.rect(screen, color, (self.x + rank * self.size, self.y + file * self.size, self.size, self.size))
+                else:
+                    color = self.dark
+                _pygame.draw.rect(screen, color, (self.x + rank * self.size, self.y + file * self.size, self.size + 1, self.size + 1))
         
         # draw the pieces
         for piece in self.all_pieces:
@@ -327,7 +329,7 @@ if __name__ == "__main__":
     # splash_screen([company_logo, logo])
 
     # Create Chess Board and Pieces
-    chessboard = ChessBoard(100, 100, BOARD_SIZE, BOARD_CONFIG, 
+    chessboard = ChessBoard(SCREEN_WIDTH / 2 - BOARD_SIZE / 2, SCREEN_HEIGHT / 2 - BOARD_SIZE / 2, BOARD_SIZE, BOARD_CONFIG, 
                             pieces={
                                 'p': {'movement': ClassicPiecesMovement.pawn_movement, 'sprite': None, 'worth': 1},
                                 'r': {'movement': ClassicPiecesMovement.rook_movement, 'sprite': None, 'worth': 5},
