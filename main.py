@@ -9,12 +9,12 @@ pygame.mixer.init()
 logo = pygame.image.load("Assets/Sprites/logo.png")
 icon = pygame.image.load("Assets/Sprites/icon.png")
 company_logo = pygame.image.load("Assets/Sprites/company.png")
+theme = 'Theme1'
 
 FRAME_RATE = 60
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 800
 HIGHLIGHT_RADIUS = 7.5
-PIECE_SIZE = 50
 BOARD_SIZE = 600
 
 WHITE = (255, 255, 255)
@@ -52,7 +52,7 @@ def load_piece_sprites():
     try:
         for color in ['w', 'b']:
             for piece_char, piece_type in piece_types.items():
-                filename = f"Assets/Sprites/{color}_{piece_char}.png"
+                filename = f"Assets/Sprites/{theme}/{color}_{piece_char}.png"
                 if os.path.exists(filename):
                     pieces[(chess.WHITE if color == 'w' else chess.BLACK, piece_type)] = pygame.image.load(filename)
                 else:
@@ -85,8 +85,8 @@ FRAME_RATE = 60
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 800
 HIGHLIGHT_RADIUS = 7.5
-PIECE_SIZE = 60
 BOARD_SIZE = 600
+PIECE_SIZE = 50
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -107,6 +107,15 @@ BOARD_CONFIG = [
     ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'], 
     ['R', 'N', 'B', 'K', 'Q', 'B', 'N', 'R']
 ]
+
+PIECE_SCALING = {
+    chess.PAWN: 60,
+    chess.KNIGHT: 52,
+    chess.BISHOP: 70,
+    chess.ROOK: 80,
+    chess.QUEEN: 50,
+    chess.KING: 50
+}
 
 def calculate_board_coordinates(board_x, board_y, board_size):
     square_size = board_size / 8
@@ -328,12 +337,12 @@ def create_pieces_from_board(board):
         piece = board.piece_at(square)
         if piece:
             x, y = square_to_coords(square)
-            sprite = pygame.transform.scale(piece_sprites[(piece.color, piece.piece_type)], (PIECE_SIZE, PIECE_SIZE))
+            sprite = pygame.transform.scale(piece_sprites[(piece.color, piece.piece_type)], (PIECE_SCALING[piece.piece_type], PIECE_SCALING[piece.piece_type]))
             pieces.append(
                 Piece(
                     chess_piece=piece,
                     sprite=sprite,
-                    rect=central_rect(x, y, PIECE_SIZE, PIECE_SIZE),
+                    rect=central_rect(x, y, PIECE_SCALING[piece.piece_type], PIECE_SCALING[piece.piece_type]),
                     square=square
                 )
             )
