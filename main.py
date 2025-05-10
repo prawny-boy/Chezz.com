@@ -238,20 +238,34 @@ class ChessBoard:
             piece.update([piece.square for piece in self.all_pieces]) # get all the pieces locations
         # update selected square
         
-    def draw(self, screen, perspective:str = "white"):
+    def draw(self, screen, perspective:str = "white", show_coordinates:bool = True):
         # draw the board
         for rank in range(8):
             for file in range(8):
-
+                if perspective == "white":
+                    rank, file = 7 - rank, 7 - file
                 if (rank + file) % 2 == 0:
                     color = self.light
                 else:
                     color = self.dark
                 _pygame.draw.rect(screen, color, (self.x + rank * self.size, self.y + file * self.size, self.size + 1, self.size + 1))
+
+                # draw the chess coordinates
+                if show_coordinates:
+                    font = _pygame.font.SysFont("Mono", 20)
+                    if rank == 0:
+                        text = font.render(str(file + 1), True, self.dark if (rank + file) % 2 == 0 else self.light)
+                        screen.blit(text, (self.x + rank * self.size, self.y + file * self.size))
+                    if file == 7:
+                        text = font.render(chr(rank + 65), True, self.dark if (rank + file) % 2 == 0 else self.light)
+                        screen.blit(text, (self.x + rank * self.size + self.size - text.size[0], self.y + file * self.size + self.size - text.size[1]))
         
         # draw the pieces
         for piece in self.all_pieces:
-            coordinates = self.square_to_coordinates(piece.square)
+            if perspective == "white":
+                coordinates = self.square_to_coordinates(BoardLocation(7 - piece.square.get_rank(), 7 - piece.square.get_file()))
+            else:
+                coordinates = self.square_to_coordinates(piece.square)
             piece.draw(screen, coordinates)
 
 # FUNCTIONS
