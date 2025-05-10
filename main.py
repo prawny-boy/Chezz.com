@@ -145,6 +145,7 @@ class Piece:
         self.legal_moves = []
         self.movement = movement
         self.special = special # "normal", "king" can move into check,"jump" means ignore pieces in the way
+        self.selected = False
     
     def create_placeholder_piece(self, color:_pygame.Color, piece_char:str):
         surf = _pygame.Surface((50, 50), _pygame.SRCALPHA)
@@ -179,6 +180,8 @@ class Piece:
     def draw(self, screen:_pygame.Surface, coordinates:tuple[int, int]):
         self.sprite = _pygame.transform.scale(self.sprite, (PIECE_SIZE, PIECE_SIZE))
         screen.blit(self.sprite, (coordinates[0] - PIECE_SIZE / 2, coordinates[1] - PIECE_SIZE / 2))
+        if self.selected:
+            _pygame.draw.circle(screen, HIGHLIGHT, (coordinates[0], coordinates[1]), HIGHLIGHT_RADIUS)
         
     def draw_legal_moves(self, screen, coordinates:tuple[int, int]):
         pass
@@ -190,6 +193,7 @@ class ChessBoard:
                  screen:_pygame.Surface,
                  starting_configuration:list[list[str]] = BOARD_CONFIG,
                  pieces:dict[str, dict] = None,
+                 perspective:str = "white",
                  dark: _pygame.Color = BROWN,
                  light: _pygame.Color = BEIGE): 
         self.x = x
@@ -198,12 +202,19 @@ class ChessBoard:
         self.all_pieces:list[Piece] = self.make_pieces(pieces, starting_configuration)
         self.dark = dark
         self.light = light
+        self.perspective = perspective
         self.ranks_locations, self.files_locations = self.calculate_positions()
         self.selected_square = None
     
     def calculate_positions(self):
-        files = [int(self.y + (7 - i) * self.size + self.size / 2) for i in range(7, -1, -1)]
         ranks = [int(self.x + j * self.size + self.size / 2) for j in range(8)]
+        files = [int(self.y + i * self.size + self.size / 2) for i in range(8)]
+
+        if self.perspective == "white":
+            files.reverse()
+        elif self.perspective == "black":
+            ranks.reverse()
+        
         print(ranks, files)
         return ranks, files
 
@@ -225,47 +236,70 @@ class ChessBoard:
     def square_to_coordinates(self, square:BoardLocation):
         return (self.ranks_locations[square.get_file()], self.files_locations[square.get_rank()])
 
-    def coordinates_to_square(self, coordinates:tuple[int, int]):
-        return BoardLocation(self.ranks_locations.index(coordinates[0]), self.files_locations.index(coordinates[1]))
+    def coordinates_to_square(self, coordinates: tuple[int, int]) -> BoardLocation:
+        x, y = coordinates
+
+        # Find closest file and rank using ranges instead of exact indexing
+        file = next((f for f in range(8) if self.ranks_locations[f] - self.size / 2 <= x < self.ranks_locations[f] + self.size / 2), None)
+        rank = next((r for r in range(8) if self.files_locations[r] - self.size / 2 <= y < self.files_locations[r] + self.size / 2), None)
+
+        return BoardLocation(rank, file) if rank is not None and file is not None else None
 
     def get_position(self):
         # Gets the position (as in chess position) of the board and returns it as how starting_configuration is
         pass
 
+    def handle_click(self, mouse_pos:tuple[int, int]):
+        self.selected_square = self.coordinates_to_square(mouse_pos)
+
     def update(self):
         # update the pieces
         for piece in self.all_pieces:
             piece.update([piece.square for piece in self.all_pieces]) # get all the pieces locations
+
         # update selected square
-        
-    def draw(self, screen, perspective:str = "white", show_coordinates:bool = True):
+        if self.selected_square is not None:
+            for piece in self.all_pieces:
+                if piece.square.get_rank() == self.selected_square.get_rank() and piece.square.get_file() == self.selected_square.get_file():
+                    piece.selected = True
+                else:
+                    piece.selected = False
+        else:
+            for piece in self.all_pieces:
+                piece.selected = False
+    
+    def draw(self, screen, show_coordinates:bool = True):
         # draw the board
         for rank in range(8):
             for file in range(8):
-                if perspective == "white":
-                    rank, file = 7 - rank, 7 - file
                 if (rank + file) % 2 == 0:
                     color = self.light
                 else:
                     color = self.dark
-                _pygame.draw.rect(screen, color, (self.x + rank * self.size, self.y + file * self.size, self.size + 1, self.size + 1))
+                if self.selected_square is not None:
+
+                    if self.selected_square.get_rank() == file and self.selected_square.get_file() == rank:
+                        color = HIGHLIGHT
+                        print(rank, file)
+                _pygame.draw.rect(screen, color, (self.ranks_locations[rank] - self.size / 2, self.files_locations[file] - self.size / 2, self.size + 1, self.size + 1))
 
                 # draw the chess coordinates
                 if show_coordinates:
                     font = _pygame.font.SysFont("Mono", 20)
-                    if rank == 0:
+                    if self.perspective == "white":
+                        coordinate_rank, coordinate_file = 0, 0
+                    else:
+                        coordinate_rank, coordinate_file = 7, 7
+                    if rank == coordinate_rank:
                         text = font.render(str(file + 1), True, self.dark if (rank + file) % 2 == 0 else self.light)
-                        screen.blit(text, (self.x + rank * self.size, self.y + file * self.size))
-                    if file == 7:
+                        screen.blit(text, (self.ranks_locations[rank] - self.size / 2, self.files_locations[file] - self.size / 2))
+                    if file == coordinate_file:
                         text = font.render(chr(rank + 65), True, self.dark if (rank + file) % 2 == 0 else self.light)
-                        screen.blit(text, (self.x + rank * self.size + self.size - text.size[0], self.y + file * self.size + self.size - text.size[1]))
+                        screen.blit(text, (self.ranks_locations[rank] + self.size / 2 - text.get_width(), self.files_locations[file] + self.size / 2 - text.get_height()))
         
         # draw the pieces
         for piece in self.all_pieces:
-            if perspective == "white":
-                coordinates = self.square_to_coordinates(BoardLocation(7 - piece.square.get_rank(), 7 - piece.square.get_file()))
-            else:
-                coordinates = self.square_to_coordinates(piece.square)
+            coordinates = self.square_to_coordinates(piece.square)
             piece.draw(screen, coordinates)
 
 # FUNCTIONS
@@ -361,6 +395,7 @@ if __name__ == "__main__":
             
             if event.type == _pygame.MOUSEBUTTONDOWN:
                 mouse_pos = _pygame.mouse.get_pos()
+                chessboard.handle_click(mouse_pos)
         
         # Updates
         chessboard.update()
