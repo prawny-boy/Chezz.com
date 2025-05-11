@@ -306,7 +306,6 @@ class ChessBoard:
     def __init__(self, 
                  x:int, y:int, 
                  size: int, 
-                 screen:_pygame.Surface,
                  starting_configuration:list[list[str]] = BOARD_CONFIG,
                  turn:str = "white",
                  pieces:dict[str, dict] = None,
@@ -572,7 +571,9 @@ if __name__ == "__main__":
     # splash_screen([company_logo, logo])
 
     # Create Chess Board and Pieces
-    chessboard = ChessBoard(SCREEN_WIDTH / 2 - BOARD_SIZE / 2, SCREEN_HEIGHT / 2 - BOARD_SIZE / 2, BOARD_SIZE, BOARD_CONFIG, 
+    chessboard = ChessBoard(x = SCREEN_WIDTH / 2 - BOARD_SIZE / 2, 
+                            y = SCREEN_HEIGHT / 2 - BOARD_SIZE / 2, 
+                            size = BOARD_SIZE, starting_configuration=BOARD_CONFIG, 
                             pieces={
                                 'p': {'pattern': ClassicPiecesMovement.pawn_movement, 'sprite': None, 'worth': 1},
                                 'r': {'pattern': ClassicPiecesMovement.rook_movement, 'sprite': None, 'worth': 5},
@@ -580,8 +581,7 @@ if __name__ == "__main__":
                                 'b': {'pattern': ClassicPiecesMovement.bishop_movement, 'sprite': None, 'worth': 3},
                                 'q': {'pattern': ClassicPiecesMovement.queen_movement, 'sprite': None, 'worth': 9},
                                 'k': {'pattern': ClassicPiecesMovement.king_movement, 'sprite': None, 'worth': 0}
-                            },
-                            perspective="white")
+                            })
     
     while True:
         for event in _pygame.event.get():
