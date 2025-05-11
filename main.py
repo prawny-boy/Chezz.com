@@ -18,12 +18,15 @@ company_logo = _pygame.image.load("Assets/Sprites/company.png")
 FRAME_RATE = 60
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-HIGHLIGHT_RADIUS = 7.5
+MOVE_HIGHLIGHT_RADIUS = 7.5
+CAPTURE_HIGHLIGHT_RADIUS = 30
+CAPTURE_HIGHLIGHT_WIDTH = 3
 PIECE_SIZE = 50
 BOARD_SIZE = 500
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
+RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BROWN = _pygame.Color('#b58863')
 BEIGE = _pygame.Color('#f0d9b5')
@@ -32,14 +35,14 @@ MOVE_HIGHLIGHT = _pygame.Color('#5fa14460')
 CAPTURE_HIGHLIGHT = _pygame.Color('#d42a2a60')
 
 BOARD_CONFIG = [
-    ['R', 'N', 'B', 'K', 'Q', 'B', 'N', 'R'],
-    ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'], 
-    [None, None, None, None, None, None, None, None], 
+    ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'],
+    ['P', 'P', 'P', None, 'P', 'P', 'P', 'P'], 
+    [None, None, None, 'P', None, None, None, None], 
     [None, None, None, None, None, None, None, None], 
     [None, None, None, None, None, None, None, None], 
     [None, None, None, None, None, None, None, None], 
     ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
-    ['r', 'n', 'b', 'k', 'q', 'b', 'n', 'r']
+    ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r']
 ]
 
 # CLASSES
@@ -48,11 +51,15 @@ class BoardLocation:
         self.rank = rank
         self.file = file
     
+    def __str__(self):
+        if self.rank < 0 or self.rank > 7 or self.file < 0 or self.file > 7:
+            return "None"
+        else:
+            return f"{["a", "b", "c", "d", "e", "f", "g", "h"][self.file]}{self.rank + 1}"
+    
     def offset(self, offset_rank:int, offset_file:int):
         self.rank += offset_rank
-
         self.file += offset_file
-        return self
     
     def get_rank(self):
         return self.rank
@@ -73,20 +80,39 @@ class Move():
             clear_space.offset(offset_rank, offset_file)
             new_clear_spaces.append(clear_space)
         self.need_to_be_clear = new_clear_spaces
+    
+    def get_move(self):
+        return self.move
 
 class MovementPattern:
-    def __init__(self, name:str, movement:list[Move]):
+    def __init__(self, name:str, pattern:list[Move]):
         self.name = name
-        self.movement = movement # list of tuples (x, y) of what to add to the current position (0, 0)
-        self.current_moves = movement
-        self.current_position = BoardLocation(0, 0)
+        self.pattern = pattern # list of tuples (x, y) of what to add to the position (0, 0)
     
-    def update_to_position(self, location:BoardLocation): # this does not check for board limits or pieces in the way
-        offset_rank = location.get_rank() - self.current_position.get_rank()
-        offset_file = location.get_file() - self.current_position.get_file()
-        for i in range(len(self.current_moves)):
-            self.current_moves[i].offset(offset_rank, offset_file)
-        self.current_position = location
+    def update_to_position(self, location: BoardLocation, direction: int) -> list[Move]:
+        rank_offset = location.get_rank()
+        file_offset = location.get_file()
+
+        new_pattern = []
+        for move in self.pattern:
+            # Offset the main move location
+            original_move = move.move
+            new_move_location = BoardLocation(
+                original_move.get_rank() + rank_offset,
+                original_move.get_file() + file_offset
+            )
+
+            # Offset all the need_to_be_clear locations
+            new_clear_spaces = [
+                BoardLocation(cs.get_rank() + rank_offset, cs.get_file() + file_offset)
+                for cs in move.need_to_be_clear
+            ]
+
+            # Create a new Move with the updated values
+            new_move = Move(new_move_location, new_clear_spaces, move.type)
+            new_pattern.append(new_move)
+
+        return new_pattern
 
 class ClassicPiecesMovement:
     pawn_movement = MovementPattern("pawn", [Move(BoardLocation(1, 0), [], "normal"),
@@ -129,10 +155,11 @@ class ClassicPiecesMovement:
 class Piece:
     def __init__(self, 
                  name:str,
-                 movement:MovementPattern, 
+                 pattern:MovementPattern, 
                  square:BoardLocation, 
                  sprite:_pygame.Surface, 
                  worth:int,
+                 direction:int = 1,
                  special:str = None):
         self.name = name
         if sprite is None:
@@ -142,9 +169,11 @@ class Piece:
         self.sprite = sprite
         self.square = square
         self.worth = worth
-        self.legal_moves = []
-        self.movement = movement
-        self.special = special # "normal", "king" can move into check,"jump" means ignore pieces in the way
+        self.legal_moves:list[Move] = []
+        self.pattern = pattern
+        self.movement = pattern.update_to_position(square, direction)
+        self.direction = direction # 1 for white, -1 for black
+        self.special = special # "normal", "king" can move into check,"jump" means ignore pieces in the way, "pawn" means can capture en passant, promotion and 2 squares first move
         self.selected = False
     
     def create_placeholder_piece(self, color:_pygame.Color, piece_char:str):
@@ -159,13 +188,17 @@ class Piece:
 
     def update(self, all_pieces_locations:list[BoardLocation]):
         # Update the position of the piece for the movement pattern
-        self.movement.update_to_position(self.square)
+        self.movement = self.pattern.update_to_position(self.square, self.direction)
         # Update the legal moves of a piece
         self.legal_moves = []
-        for move in self.movement.current_moves:
+        for move in self.movement:
             if move.move.get_rank() >= 0 and move.move.get_rank() < 8 and move.move.get_file() >= 0 and move.move.get_file() < 8: # check if the move is within the board limits
                 if move.type == "normal": # check if the move is not blocked by other pieces
-                    self.legal_moves.append(move)
+                    for piece_location in all_pieces_locations:
+                        if piece_location.get_rank() == move.move.get_rank() and piece_location.get_file() == move.move.get_file():
+                            break
+                    else: # this means that the move is not blocked by other pieces
+                        self.legal_moves.append(move)
                 elif move.type == "capture": # check if the move is onto a piece
                     for piece_location in all_pieces_locations:
                         if piece_location.get_rank() == move.move.get_rank() and piece_location.get_file() == move.move.get_file():
@@ -173,18 +206,25 @@ class Piece:
                             break
                 elif move.type == "jump": # this is if the piece can jump over other pieces
                     self.legal_moves.append(move)
+        if self.selected == True:
+            print([str(move.move) for move in self.legal_moves])
 
     def move_to(self, new_square:BoardLocation):
         self.square = new_square
     
-    def draw(self, screen:_pygame.Surface, coordinates:tuple[int, int]):
+    def draw_legal_moves(self, screen:_pygame.Surface, ranks_locations:list[int], files_locations:list[int]):
+        for move in self.legal_moves:
+            if move.type == "normal":
+                _pygame.draw.circle(screen, MOVE_HIGHLIGHT, (ranks_locations[move.move.get_file()], files_locations[move.move.get_rank()]), MOVE_HIGHLIGHT_RADIUS)
+            elif move.type == "capture":
+                _pygame.draw.circle(screen, CAPTURE_HIGHLIGHT, (ranks_locations[move.move.get_file()], files_locations[move.move.get_rank()]), CAPTURE_HIGHLIGHT_RADIUS, CAPTURE_HIGHLIGHT_WIDTH)
+    
+    def draw(self, screen:_pygame.Surface, ranks_locations:list[int], files_locations:list[int]):
         self.sprite = _pygame.transform.scale(self.sprite, (PIECE_SIZE, PIECE_SIZE))
-        screen.blit(self.sprite, (coordinates[0] - PIECE_SIZE / 2, coordinates[1] - PIECE_SIZE / 2))
+        screen.blit(self.sprite, (ranks_locations[self.square.get_file()] - PIECE_SIZE / 2, files_locations[self.square.get_rank()] - PIECE_SIZE / 2))
         if self.selected:
-            _pygame.draw.circle(screen, HIGHLIGHT, (coordinates[0], coordinates[1]), HIGHLIGHT_RADIUS)
-        
-    def draw_legal_moves(self, screen, coordinates:tuple[int, int]):
-        pass
+            _pygame.draw.circle(screen, HIGHLIGHT, (ranks_locations[self.square.get_file()], files_locations[self.square.get_rank()]), MOVE_HIGHLIGHT_RADIUS)
+            self.draw_legal_moves(screen, ranks_locations, files_locations)
 
 class ChessBoard:
     def __init__(self, 
@@ -212,9 +252,8 @@ class ChessBoard:
 
         if self.perspective == "white":
             files.reverse()
-        elif self.perspective == "black":
+        if self.perspective == "black":
             ranks.reverse()
-        
         print(ranks, files)
         return ranks, files
 
@@ -251,24 +290,25 @@ class ChessBoard:
 
     def handle_click(self, mouse_pos:tuple[int, int]):
         self.selected_square = self.coordinates_to_square(mouse_pos)
+        print(f"selected square: {str(self.selected_square)}")
 
     def update(self):
         # update the pieces
-        for piece in self.all_pieces:
-            piece.update([piece.square for piece in self.all_pieces]) # get all the pieces locations
+        for piece in range(len(self.all_pieces)):
+            self.all_pieces[piece].update([piece.square for piece in self.all_pieces]) # get all the pieces locations
 
         # update selected square
         if self.selected_square is not None:
-            for piece in self.all_pieces:
-                if piece.square.get_rank() == self.selected_square.get_rank() and piece.square.get_file() == self.selected_square.get_file():
-                    piece.selected = True
+            for piece in range(len(self.all_pieces)):
+                if self.all_pieces[piece].square.get_rank() == self.selected_square.get_rank() and self.all_pieces[piece].square.get_file() == self.selected_square.get_file():
+                    self.all_pieces[piece].selected = True
                 else:
-                    piece.selected = False
+                    self.all_pieces[piece].selected = False
         else:
-            for piece in self.all_pieces:
-                piece.selected = False
+            for piece in range(len(self.all_pieces)):
+                self.all_pieces[piece].selected = False
     
-    def draw(self, screen, show_coordinates:bool = True):
+    def draw(self, screen:_pygame.Surface, show_coordinates:bool = True):
         # draw the board
         for rank in range(8):
             for file in range(8):
@@ -280,7 +320,6 @@ class ChessBoard:
 
                     if self.selected_square.get_rank() == file and self.selected_square.get_file() == rank:
                         color = HIGHLIGHT
-                        print(rank, file)
                 _pygame.draw.rect(screen, color, (self.ranks_locations[rank] - self.size / 2, self.files_locations[file] - self.size / 2, self.size + 1, self.size + 1))
 
                 # draw the chess coordinates
@@ -297,10 +336,29 @@ class ChessBoard:
                         text = font.render(chr(rank + 65), True, self.dark if (rank + file) % 2 == 0 else self.light)
                         screen.blit(text, (self.ranks_locations[rank] + self.size / 2 - text.get_width(), self.files_locations[file] + self.size / 2 - text.get_height()))
         
-        # draw the pieces
+        # draw the pieces and the legal moves of the selected piece
         for piece in self.all_pieces:
             coordinates = self.square_to_coordinates(piece.square)
-            piece.draw(screen, coordinates)
+            piece.draw(screen, self.ranks_locations, self.files_locations)
+        
+        # Debugging information
+        mouse_pos = _pygame.mouse.get_pos()
+        font = _pygame.font.SysFont("Mono", 15)
+        text = font.render(f"{chessboard.coordinates_to_square(mouse_pos)}", True, RED)
+        screen.blit(text, (10, 10))
+
+        if self.selected_square is not None:
+            text = font.render(f"Selected: {self.selected_square}", True, RED)
+            screen.blit(text, (10, 30))
+            for piece in self.all_pieces:
+                if piece.square.get_rank() == self.selected_square.get_rank() and piece.square.get_file() == self.selected_square.get_file():
+                    text = font.render(f"Piece: {piece.square}", True, RED)
+                    screen.blit(text, (10, 50))
+                    text = font.render(f"Movement: {[str(i.move) for i in piece.movement]}", True, RED)
+                    screen.blit(text, (10, 70))
+                    text = font.render(f"Legal: {[str(i.move) for i in piece.legal_moves]}", True, RED)
+                    screen.blit(text, (10, 90))
+                    break
 
 # FUNCTIONS
 # def load_piece_sprites():
@@ -379,13 +437,14 @@ if __name__ == "__main__":
     # Create Chess Board and Pieces
     chessboard = ChessBoard(SCREEN_WIDTH / 2 - BOARD_SIZE / 2, SCREEN_HEIGHT / 2 - BOARD_SIZE / 2, BOARD_SIZE, BOARD_CONFIG, 
                             pieces={
-                                'p': {'movement': ClassicPiecesMovement.pawn_movement, 'sprite': None, 'worth': 1},
-                                'r': {'movement': ClassicPiecesMovement.rook_movement, 'sprite': None, 'worth': 5},
-                                'n': {'movement': ClassicPiecesMovement.knight_movement, 'sprite': None, 'worth': 3},
-                                'b': {'movement': ClassicPiecesMovement.bishop_movement, 'sprite': None, 'worth': 3},
-                                'q': {'movement': ClassicPiecesMovement.queen_movement, 'sprite': None, 'worth': 9},
-                                'k': {'movement': ClassicPiecesMovement.king_movement, 'sprite': None, 'worth': 0}
-                            })
+                                'p': {'pattern': ClassicPiecesMovement.pawn_movement, 'sprite': None, 'worth': 1},
+                                'r': {'pattern': ClassicPiecesMovement.rook_movement, 'sprite': None, 'worth': 5},
+                                'n': {'pattern': ClassicPiecesMovement.knight_movement, 'sprite': None, 'worth': 3},
+                                'b': {'pattern': ClassicPiecesMovement.bishop_movement, 'sprite': None, 'worth': 3},
+                                'q': {'pattern': ClassicPiecesMovement.queen_movement, 'sprite': None, 'worth': 9},
+                                'k': {'pattern': ClassicPiecesMovement.king_movement, 'sprite': None, 'worth': 0}
+                            },
+                            perspective="black")
     
     while True:
         for event in _pygame.event.get():
@@ -396,7 +455,7 @@ if __name__ == "__main__":
             if event.type == _pygame.MOUSEBUTTONDOWN:
                 mouse_pos = _pygame.mouse.get_pos()
                 chessboard.handle_click(mouse_pos)
-        
+
         # Updates
         chessboard.update()
 
