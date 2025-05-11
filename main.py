@@ -553,27 +553,6 @@ def splash_screen(icons_to_show:list[_pygame.Surface]):
         _pygame.display.flip()
         clock.tick(FRAME_RATE)
 
-# def create_pieces_from_board(board):
-#     pieces = []
-#     for square in chess.SQUARES:
-#         piece = board.piece_at(square)
-#         if piece:
-#             x, y = square_to_coords(square)
-#             sprite = pygame.transform.scale(piece_sprites[(piece.color, piece.piece_type)], (PIECE_SIZE, PIECE_SIZE))
-#             pieces.append(
-#                 Piece(
-#                     chess_piece=piece,
-#                     sprite=sprite,
-#                     rect=central_rect(x, y, PIECE_SIZE, PIECE_SIZE),
-#                     square=square
-#                 )
-#             )
-    
-#     for piece in pieces:
-#         piece.update_legal_moves(board)
-    
-#     return pieces
-
 screen = _pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 _pygame.display.set_caption("Chezz.com")
 _pygame.display.set_icon(icon)
