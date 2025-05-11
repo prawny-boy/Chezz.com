@@ -67,7 +67,7 @@ class BoardLocation:
     def get_file(self):
         return self.file
 
-class Move():
+class Move:
     def __init__(self, move:BoardLocation, need_to_be_clear:list[BoardLocation], type:str):
         self.move = move
         self.need_to_be_clear = need_to_be_clear
@@ -95,24 +95,28 @@ class MovementPattern:
 
         new_pattern = []
         for move in self.pattern:
-            # Offset the main move location
+            # Adjust the move's rank and file based on direction
             original_move = move.move
             new_move_location = BoardLocation(
-                original_move.get_rank() + rank_offset,
-                original_move.get_file() + file_offset
+                rank_offset + direction * original_move.get_rank(),
+                file_offset + direction * original_move.get_file()
             )
 
-            # Offset all the need_to_be_clear locations
+            # Adjust each clear space's location based on direction
             new_clear_spaces = [
-                BoardLocation(cs.get_rank() + rank_offset, cs.get_file() + file_offset)
+                BoardLocation(
+                    rank_offset + direction * cs.get_rank(),
+                    file_offset + direction * cs.get_file()
+                )
                 for cs in move.need_to_be_clear
             ]
 
-            # Create a new Move with the updated values
+            # Create a new Move with updated positions
             new_move = Move(new_move_location, new_clear_spaces, move.type)
             new_pattern.append(new_move)
 
         return new_pattern
+
 
 class ClassicPiecesMovement:
     pawn_movement = MovementPattern("pawn", [Move(BoardLocation(1, 0), [], "normal"),
@@ -269,7 +273,7 @@ class ChessBoard:
             for file in range(8):
                 piece_name = starting_configuration[rank][file]
                 if piece_name is not None:
-                    pieces.append(Piece(**pieces_dict[piece_name.lower()], name=piece_name, square=BoardLocation(rank, file), colour="white" if piece_name.isupper() else "black"))
+                    pieces.append(Piece(**pieces_dict[piece_name.lower()], name=piece_name, square=BoardLocation(rank, file), colour="white" if piece_name.isupper() else "black", direction=1 if piece_name.isupper() else -1))
                     print(f"Piece {piece_name} created at {rank}, {file}")
             
         return pieces
