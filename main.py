@@ -36,8 +36,8 @@ CAPTURE_HIGHLIGHT = _pygame.Color('#d42a2a60')
 
 BOARD_CONFIG = [
     ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'],
-    ['P', 'P', 'P', None, 'P', 'P', 'P', 'P'], 
-    [None, None, None, 'P', None, None, None, None], 
+    ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'], 
+    [None, None, None, None, None, None, None, None], 
     [None, None, None, None, None, None, None, None], 
     [None, None, None, None, None, None, None, None], 
     [None, None, None, None, None, None, None, None], 
@@ -132,28 +132,21 @@ class MovementPattern:
 
 class ClassicPiecesMovement:
     @staticmethod
-    def generate_linear_moves(directions: list[tuple[int, int]], max_distance: int, move_type: str = "normal") -> list[Move]:
+    def generate_linear_moves(directions: list[tuple[int, int]], max_distance: int) -> list[Move]:
         moves = []
         for dx, dy in directions:
             for dist in range(1, max_distance + 1):
-                target = BoardLocation(dist * dx, dist * dy)
-                # Create a path of intermediate spaces that must be clear
-                clear_path = [BoardLocation(i * dx, i * dy) for i in range(1, dist)]
-                need_to_be_clear = [clear_path] if clear_path else []
-                moves.append(Move(target, need_to_be_clear, move_type))
+                destination = BoardLocation(dist * dx, dist * dy)
+                clear_path = [BoardLocation(i * dx, i * dy) for i in range(1, dist)]  # spaces before the end
+                if clear_path:
+                    moves.append(Move(destination, [clear_path], "normal"))
+                    moves.append(Move(destination, [clear_path], "capture"))
+                else:
+                    # for adjacent steps (like king), no need_to_be_clear
+                    moves.append(Move(destination, [], "normal"))
+                    moves.append(Move(destination, [], "capture"))
         return moves
 
-    def __str__(self):
-        return "\n\n".join([
-            str(self.pawn_movement),
-            str(self.knight_movement),
-            str(self.bishop_movement),
-            str(self.rook_movement),
-            str(self.queen_movement),
-            str(self.king_movement),
-        ])
-
-    # Movement patterns
     pawn_movement = MovementPattern("pawn", [
         Move(BoardLocation(1, 0), [], "normal"),
         Move(BoardLocation(2, 0), [[BoardLocation(1, 0)]], "normal"),
@@ -162,14 +155,14 @@ class ClassicPiecesMovement:
     ])
 
     knight_movement = MovementPattern("knight", [
-        Move(BoardLocation(2, 1), [], "jump"),
-        Move(BoardLocation(2, -1), [], "jump"),
-        Move(BoardLocation(-2, 1), [], "jump"),
-        Move(BoardLocation(-2, -1), [], "jump"),
-        Move(BoardLocation(1, 2), [], "jump"),
-        Move(BoardLocation(1, -2), [], "jump"),
-        Move(BoardLocation(-1, 2), [], "jump"),
-        Move(BoardLocation(-1, -2), [], "jump")
+        Move(BoardLocation(2, 1), [], "jump"), Move(BoardLocation(2, 1), [], "jump-capture"),
+        Move(BoardLocation(2, -1), [], "jump"), Move(BoardLocation(2, -1), [], "jump-capture"),
+        Move(BoardLocation(-2, 1), [], "jump"), Move(BoardLocation(-2, 1), [], "jump-capture"),
+        Move(BoardLocation(-2, -1), [], "jump"), Move(BoardLocation(-2, -1), [], "jump-capture"),
+        Move(BoardLocation(1, 2), [], "jump"), Move(BoardLocation(1, 2), [], "jump-capture"),
+        Move(BoardLocation(1, -2), [], "jump"), Move(BoardLocation(1, -2), [], "jump-capture"),
+        Move(BoardLocation(-1, 2), [], "jump"), Move(BoardLocation(-1, 2), [], "jump-capture"),
+        Move(BoardLocation(-1, -2), [], "jump"), Move(BoardLocation(-1, -2), [], "jump-capture")
     ])
 
     bishop_movement = MovementPattern(
@@ -188,17 +181,15 @@ class ClassicPiecesMovement:
     )
 
     king_movement = MovementPattern("king", [
-        Move(BoardLocation(1, 0), [], "normal"),
-        Move(BoardLocation(-1, 0), [], "normal"),
-        Move(BoardLocation(0, 1), [], "normal"),
-        Move(BoardLocation(0, -1), [], "normal"),
-        Move(BoardLocation(1, 1), [], "normal"),
-        Move(BoardLocation(1, -1), [], "normal"),
-        Move(BoardLocation(-1, 1), [], "normal"),
-        Move(BoardLocation(-1, -1), [], "normal")
+        Move(BoardLocation(1, 0), [], "normal"), Move(BoardLocation(1, 0), [], "capture"),
+        Move(BoardLocation(-1, 0), [], "normal"), Move(BoardLocation(-1, 0), [], "capture"),
+        Move(BoardLocation(0, 1), [], "normal"), Move(BoardLocation(0, 1), [], "capture"),
+        Move(BoardLocation(0, -1), [], "normal"), Move(BoardLocation(0, -1), [], "capture"),
+        Move(BoardLocation(1, 1), [], "normal"), Move(BoardLocation(1, 1), [], "capture"),
+        Move(BoardLocation(1, -1), [], "normal"), Move(BoardLocation(1, -1), [], "capture"),
+        Move(BoardLocation(-1, 1), [], "normal"), Move(BoardLocation(-1, 1), [], "capture"),
+        Move(BoardLocation(-1, -1), [], "normal"), Move(BoardLocation(-1, -1), [], "capture")
     ])
-
-print(ClassicPiecesMovement())
 
 class Piece:
     def __init__(self, 
@@ -259,17 +250,37 @@ class Piece:
                             break
                     if not blocked:
                         self.legal_moves.append(move)
-                elif move.type == "capture": # check if the move is onto a piece
-                    for piece_location in opposite_pieces_locations:
-                        if piece_location.get_rank() == move.move.get_rank() and piece_location.get_file() == move.move.get_file():
-                            self.legal_moves.append(move)
+                elif move.type == "capture":
+                    is_clear = True
+                    # First check if all 'need_to_be_clear' squares are not occupied
+                    for clear_path in move.need_to_be_clear:
+                        for cs in clear_path:
+                            for piece_location in opposite_pieces_locations + same_pieces_locations:
+                                if piece_location.get_rank() == cs.get_rank() and piece_location.get_file() == cs.get_file():
+                                    is_clear = False
+                                    break
+                            if not is_clear:
+                                break
+                        if not is_clear:
                             break
+
+                    if is_clear:
+                        # Then check if the destination has an enemy piece
+                        for piece_location in opposite_pieces_locations:
+                            if piece_location.get_rank() == move.move.get_rank() and piece_location.get_file() == move.move.get_file():
+                                self.legal_moves.append(move)
+                                break
                 elif move.type == "jump": # this is if the piece can jump over other pieces
                     for piece_location in opposite_pieces_locations + same_pieces_locations:
                         if piece_location.get_rank() == move.move.get_rank() and piece_location.get_file() == move.move.get_file():
                             break
                     else:
                         self.legal_moves.append(move)
+                elif move.type == "jump-capture": # this is if the piece can jump over other pieces and capture them
+                    for piece_location in opposite_pieces_locations:
+                        if piece_location.get_rank() == move.move.get_rank() and piece_location.get_file() == move.move.get_file():
+                            self.legal_moves.append(move)
+                            break
         if self.selected == True:
             print([str(move.move) for move in self.legal_moves])
 
@@ -280,14 +291,14 @@ class Piece:
         for move in self.legal_moves:
             if move.type == "normal" or move.type == "jump":
                 _pygame.draw.circle(screen, MOVE_HIGHLIGHT, (ranks_locations[move.move.get_file()], files_locations[move.move.get_rank()]), MOVE_HIGHLIGHT_RADIUS)
-            elif move.type == "capture":
+            elif "capture" in move.type:
                 _pygame.draw.circle(screen, CAPTURE_HIGHLIGHT, (ranks_locations[move.move.get_file()], files_locations[move.move.get_rank()]), CAPTURE_HIGHLIGHT_RADIUS, CAPTURE_HIGHLIGHT_WIDTH)
     
     def draw(self, screen:_pygame.Surface, ranks_locations:list[int], files_locations:list[int]):
         self.sprite = _pygame.transform.scale(self.sprite, (PIECE_SIZE, PIECE_SIZE))
         screen.blit(self.sprite, (ranks_locations[self.square.get_file()] - PIECE_SIZE / 2, files_locations[self.square.get_rank()] - PIECE_SIZE / 2))
         if self.selected:
-            _pygame.draw.circle(screen, HIGHLIGHT, (ranks_locations[self.square.get_file()], files_locations[self.square.get_rank()]), MOVE_HIGHLIGHT_RADIUS)
+            # _pygame.draw.circle(screen, HIGHLIGHT, (ranks_locations[self.square.get_file()], files_locations[self.square.get_rank()]), MOVE_HIGHLIGHT_RADIUS)
             self.draw_legal_moves(screen, ranks_locations, files_locations)
 
 class ChessBoard:
@@ -352,9 +363,35 @@ class ChessBoard:
         # Gets the position (as in chess position) of the board and returns it as how starting_configuration is
         pass
 
+    def move_piece(self, piece_location:BoardLocation, move_to:BoardLocation):
+        for piece in self.all_pieces:
+            if piece.square.get_file() == piece_location.get_file() and piece.square.get_rank() == piece_location.get_rank():
+                for legal_move in piece.legal_moves:
+                    if legal_move.move.get_file() == move_to.get_file() and legal_move.move.get_rank() == move_to.get_rank():
+                        for piece2 in self.all_pieces:
+                            if piece2.square.get_file() == move_to.get_file() and piece2.square.get_rank() == move_to.get_rank():
+                                self.all_pieces.remove(piece2)
+                                del piece2
+                        piece.move_to(move_to)
+                        print(f"Moved {piece.name} from {piece.square} to {move_to}")
+                        return
+                else:
+                    print(f"Move {move_to} is not legal")
+
     def handle_click(self, mouse_pos:tuple[int, int]):
-        self.selected_square = self.coordinates_to_square(mouse_pos)
-        print(f"selected square: {str(self.selected_square)}")
+        clicked_square = self.coordinates_to_square(mouse_pos)
+        if clicked_square is None:
+            self.selected_square = None
+            print(f"deselected because of click outside")
+        elif self.selected_square is None:
+            self.selected_square = self.coordinates_to_square(mouse_pos)
+            print(f"selected square: {str(self.selected_square)}")
+        elif self.selected_square.get_file() == clicked_square.get_file() and self.selected_square.get_rank() == clicked_square.get_rank():
+            self.selected_square = None
+            print(f"deselected square: {str(self.selected_square)}")
+        else:
+            self.move_piece(self.selected_square, clicked_square)
+            self.selected_square = None
 
     def update(self):
         # update the pieces
