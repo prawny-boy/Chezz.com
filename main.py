@@ -159,6 +159,7 @@ class Piece:
                  square:BoardLocation, 
                  sprite:_pygame.Surface, 
                  worth:int,
+                 colour:str,
                  direction:int = 1,
                  special:str = None):
         self.name = name
@@ -169,6 +170,7 @@ class Piece:
         self.sprite = sprite
         self.square = square
         self.worth = worth
+        self.colour = colour
         self.legal_moves:list[Move] = []
         self.pattern = pattern
         self.movement = pattern.update_to_position(square, direction)
@@ -186,7 +188,7 @@ class Piece:
         surf.blit(text, text_rect)
         return surf
 
-    def update(self, all_pieces_locations:list[BoardLocation]):
+    def update(self, opposite_pieces_locations:list[BoardLocation], same_pieces_locations:list[BoardLocation]):
         # Update the position of the piece for the movement pattern
         self.movement = self.pattern.update_to_position(self.square, self.direction)
         # Update the legal moves of a piece
@@ -194,13 +196,13 @@ class Piece:
         for move in self.movement:
             if move.move.get_rank() >= 0 and move.move.get_rank() < 8 and move.move.get_file() >= 0 and move.move.get_file() < 8: # check if the move is within the board limits
                 if move.type == "normal": # check if the move is not blocked by other pieces
-                    for piece_location in all_pieces_locations:
+                    for piece_location in opposite_pieces_locations + same_pieces_locations:
                         if piece_location.get_rank() == move.move.get_rank() and piece_location.get_file() == move.move.get_file():
                             break
                     else: # this means that the move is not blocked by other pieces
                         self.legal_moves.append(move)
                 elif move.type == "capture": # check if the move is onto a piece
-                    for piece_location in all_pieces_locations:
+                    for piece_location in opposite_pieces_locations:
                         if piece_location.get_rank() == move.move.get_rank() and piece_location.get_file() == move.move.get_file():
                             self.legal_moves.append(move)
                             break
@@ -267,7 +269,7 @@ class ChessBoard:
             for file in range(8):
                 piece_name = starting_configuration[rank][file]
                 if piece_name is not None:
-                    pieces.append(Piece(**pieces_dict[piece_name.lower()], name=piece_name, square=BoardLocation(rank, file)))
+                    pieces.append(Piece(**pieces_dict[piece_name.lower()], name=piece_name, square=BoardLocation(rank, file), colour="white" if piece_name.isupper() else "black"))
                     print(f"Piece {piece_name} created at {rank}, {file}")
             
         return pieces
@@ -294,8 +296,18 @@ class ChessBoard:
 
     def update(self):
         # update the pieces
+        white_pieces_locations = []
+        black_pieces_locations = []
+        for piece in self.all_pieces: # get all the pieces locations
+            if piece.colour == "white":
+                white_pieces_locations.append(piece.square)
+            else:
+                black_pieces_locations.append(piece.square)
         for piece in range(len(self.all_pieces)):
-            self.all_pieces[piece].update([piece.square for piece in self.all_pieces]) # get all the pieces locations
+            if self.all_pieces[piece].colour == "white":
+                self.all_pieces[piece].update(black_pieces_locations, white_pieces_locations)
+            else:
+                self.all_pieces[piece].update(white_pieces_locations, black_pieces_locations) 
 
         # update selected square
         if self.selected_square is not None:
