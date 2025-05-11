@@ -592,7 +592,7 @@ def splash_screen(icons_to_show:list[_pygame.Surface]):
     
 #     return pieces
 
-screen = _pygame.display.set_mode((SCREEN_HEIGHT, SCREEN_WIDTH))
+screen = _pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 _pygame.display.set_caption("Chezz.com")
 _pygame.display.set_icon(icon)
 clock = _pygame.time.Clock()
