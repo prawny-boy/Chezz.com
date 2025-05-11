@@ -68,93 +68,137 @@ class BoardLocation:
         return self.file
 
 class Move:
-    def __init__(self, move:BoardLocation, need_to_be_clear:list[BoardLocation], type:str):
+    def __init__(self, move:BoardLocation, need_to_be_clear:list[list[BoardLocation]], type:str):
         self.move = move
         self.need_to_be_clear = need_to_be_clear
         self.type = type # "normal", "capture"
     
+    def __str__(self):
+        clear_str = ', '.join(
+            '[' + ', '.join(str(loc) for loc in group) + ']'
+            for group in self.need_to_be_clear
+        )
+        return f"Move to {self.move}, clears: {clear_str if clear_str else '[]'}, type: {self.type}"
+    
     def offset(self, offset_rank:int, offset_file:int):
         self.move.offset(offset_rank, offset_file)
         new_clear_spaces = []
-        for clear_space in self.need_to_be_clear:
-            clear_space.offset(offset_rank, offset_file)
-            new_clear_spaces.append(clear_space)
+        for clear_spaces in self.need_to_be_clear:
+            new_clear_spaces.append([])
+            for clear_space in clear_spaces:
+                clear_space.offset(offset_rank, offset_file)
+                new_clear_spaces[-1].append(clear_space)
         self.need_to_be_clear = new_clear_spaces
     
     def get_move(self):
         return self.move
 
 class MovementPattern:
-    def __init__(self, name:str, pattern:list[Move]):
+    def __init__(self, name: str, pattern: list[Move]):
         self.name = name
-        self.pattern = pattern # list of tuples (x, y) of what to add to the position (0, 0)
+        self.pattern = pattern  # list of Move objects
     
+    def __str__(self):
+        moves_str = "\n  ".join(str(move) for move in self.pattern)
+        return f"{self.name.capitalize()} Moves:\n  {moves_str}"
+
     def update_to_position(self, location: BoardLocation, direction: int) -> list[Move]:
         rank_offset = location.get_rank()
         file_offset = location.get_file()
-
+        
         new_pattern = []
         for move in self.pattern:
-            # Adjust the move's rank and file based on direction
+            # offset the main move location
             original_move = move.move
             new_move_location = BoardLocation(
                 rank_offset + direction * original_move.get_rank(),
                 file_offset + direction * original_move.get_file()
             )
-
-            # Adjust each clear space's location based on direction
+            # offset each group of clear spaces
             new_clear_spaces = [
-                BoardLocation(
-                    rank_offset + direction * cs.get_rank(),
-                    file_offset + direction * cs.get_file()
-                )
-                for cs in move.need_to_be_clear
-            ]
-
-            # Create a new Move with updated positions
+                [
+                    BoardLocation(
+                        rank_offset + direction * cs.get_rank(), # flip dir
+                        file_offset + direction * cs.get_file()
+                    )
+                    for cs in clear_group
+                ]
+                for clear_group in move.need_to_be_clear]
+            # create a new move with updated positions
             new_move = Move(new_move_location, new_clear_spaces, move.type)
             new_pattern.append(new_move)
 
         return new_pattern
 
-
 class ClassicPiecesMovement:
-    pawn_movement = MovementPattern("pawn", [Move(BoardLocation(1, 0), [], "normal"),
-                                            Move(BoardLocation(2, 0), [], "normal"),
-                                            Move(BoardLocation(1, 1), [], "capture"),
-                                            Move(BoardLocation(1, -1), [], "capture")])
-    knight_movement = MovementPattern("knight", [Move(BoardLocation(2, 1), [], "jump"),
-                                                Move(BoardLocation(2, -1), [], "jump"),
-                                                Move(BoardLocation(-2, 1), [], "jump"),
-                                                Move(BoardLocation(-2, -1), [], "jump"),
-                                                Move(BoardLocation(1, 2), [], "jump"),
-                                                Move(BoardLocation(1, -2), [], "jump"),
-                                                Move(BoardLocation(-1, 2), [], "jump"),
-                                                Move(BoardLocation(-1, -2), [], "jump")])
-    bishop_movement = MovementPattern("bishop", [Move(BoardLocation(1, 1), [], "normal"),
-                                                Move(BoardLocation(1, -1), [], "normal"),
-                                                Move(BoardLocation(-1, 1), [], "normal"),
-                                                Move(BoardLocation(-1, -1), [], "normal")])
-    rook_movement = MovementPattern("rook", [Move(BoardLocation(1, 0), [], "normal"),
-                                            Move(BoardLocation(-1, 0), [], "normal"),
-                                            Move(BoardLocation(0, 1), [], "normal"),
-                                            Move(BoardLocation(0, -1), [], "normal")])
-    queen_movement = MovementPattern("queen", [Move(BoardLocation(1, 0), [], "normal"),
-                                             Move(BoardLocation(-1, 0), [], "normal"),
-                                             Move(BoardLocation(0, 1), [], "normal"),
-                                             Move(BoardLocation(0, -1), [], "normal"),
-                                             Move(BoardLocation(1, 1), [], "normal"),
-                                             Move(BoardLocation(1, -1), [], "normal"),
-                                             Move(BoardLocation(-1, 1), [], "normal"),
-                                             Move(BoardLocation(-1, -1), [], "normal")])
-    king_movement = MovementPattern("king", [Move(BoardLocation(1, 0), [], "normal"),
-                                            Move(BoardLocation(-1, 0), [], "normal"),
-                                            Move(BoardLocation(0, 1), [], "normal"),
-                                            Move(BoardLocation(0, -1), [], "normal"),
-                                            Move(BoardLocation(1, 1), [], "normal"),
-                                            Move(BoardLocation(1, -1), [], "normal"),
-                                            Move(BoardLocation(-1, 1), [], "normal"),
-                                            Move(BoardLocation(-1, -1), [], "normal")])
+    @staticmethod
+    def generate_linear_moves(directions: list[tuple[int, int]], max_distance: int, move_type: str = "normal") -> list[Move]:
+        moves = []
+        for dx, dy in directions:
+            for dist in range(1, max_distance + 1):
+                target = BoardLocation(dist * dx, dist * dy)
+                # Create a path of intermediate spaces that must be clear
+                clear_path = [BoardLocation(i * dx, i * dy) for i in range(1, dist)]
+                need_to_be_clear = [clear_path] if clear_path else []
+                moves.append(Move(target, need_to_be_clear, move_type))
+        return moves
+
+    def __str__(self):
+        return "\n\n".join([
+            str(self.pawn_movement),
+            str(self.knight_movement),
+            str(self.bishop_movement),
+            str(self.rook_movement),
+            str(self.queen_movement),
+            str(self.king_movement),
+        ])
+
+    # Movement patterns
+    pawn_movement = MovementPattern("pawn", [
+        Move(BoardLocation(1, 0), [], "normal"),
+        Move(BoardLocation(2, 0), [[BoardLocation(1, 0)]], "normal"),
+        Move(BoardLocation(1, 1), [], "capture"),
+        Move(BoardLocation(1, -1), [], "capture")
+    ])
+
+    knight_movement = MovementPattern("knight", [
+        Move(BoardLocation(2, 1), [], "jump"),
+        Move(BoardLocation(2, -1), [], "jump"),
+        Move(BoardLocation(-2, 1), [], "jump"),
+        Move(BoardLocation(-2, -1), [], "jump"),
+        Move(BoardLocation(1, 2), [], "jump"),
+        Move(BoardLocation(1, -2), [], "jump"),
+        Move(BoardLocation(-1, 2), [], "jump"),
+        Move(BoardLocation(-1, -2), [], "jump")
+    ])
+
+    bishop_movement = MovementPattern(
+        "bishop", generate_linear_moves([(1, 1), (1, -1), (-1, 1), (-1, -1)], 8)
+    )
+
+    rook_movement = MovementPattern(
+        "rook", generate_linear_moves([(1, 0), (-1, 0), (0, 1), (0, -1)], 8)
+    )
+
+    queen_movement = MovementPattern(
+        "queen", generate_linear_moves([
+            (1, 0), (-1, 0), (0, 1), (0, -1),
+            (1, 1), (1, -1), (-1, 1), (-1, -1)
+        ], 8)
+    )
+
+    king_movement = MovementPattern("king", [
+        Move(BoardLocation(1, 0), [], "normal"),
+        Move(BoardLocation(-1, 0), [], "normal"),
+        Move(BoardLocation(0, 1), [], "normal"),
+        Move(BoardLocation(0, -1), [], "normal"),
+        Move(BoardLocation(1, 1), [], "normal"),
+        Move(BoardLocation(1, -1), [], "normal"),
+        Move(BoardLocation(-1, 1), [], "normal"),
+        Move(BoardLocation(-1, -1), [], "normal")
+    ])
+
+print(ClassicPiecesMovement())
 
 class Piece:
     def __init__(self, 
@@ -199,8 +243,12 @@ class Piece:
         self.legal_moves = []
         for move in self.movement:
             if move.move.get_rank() >= 0 and move.move.get_rank() < 8 and move.move.get_file() >= 0 and move.move.get_file() < 8: # check if the move is within the board limits
-                if move.type == "normal": # check if the move is not blocked by other pieces
+                if move.type == "normal": # check if the move is not blocked by other pieces including its landing one
                     for piece_location in opposite_pieces_locations + same_pieces_locations:
+                        for clear_space in move.need_to_be_clear:
+                            for cs in clear_space:
+                                if piece_location.get_rank() == cs.get_rank() and piece_location.get_file() == cs.get_file():
+                                    break
                         if piece_location.get_rank() == move.move.get_rank() and piece_location.get_file() == move.move.get_file():
                             break
                     else: # this means that the move is not blocked by other pieces
