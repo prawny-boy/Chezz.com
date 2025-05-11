@@ -45,6 +45,15 @@ BOARD_CONFIG = [
     ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r']
 ]
 
+# PIECE_SCALING = {
+#     chess.PAWN: 60,
+#     chess.KNIGHT: 52,
+#     chess.BISHOP: 70,
+#     chess.ROOK: 80,
+#     chess.QUEEN: 50,
+#     chess.KING: 50
+# }
+
 # Variables
 show_debug_info = False
 
@@ -561,6 +570,27 @@ def splash_screen(icons_to_show:list[_pygame.Surface]):
         screen.blit(icon, (SCREEN_WIDTH / 2 - icon.get_width() / 2, SCREEN_HEIGHT / 2 - icon.get_height() / 2))
         _pygame.display.flip()
         clock.tick(FRAME_RATE)
+
+# def create_pieces_from_board(board):
+#     pieces = []
+#     for square in chess.SQUARES:
+#         piece = board.piece_at(square)
+#         if piece:
+#             x, y = square_to_coords(square)
+#             sprite = pygame.transform.scale(piece_sprites[(piece.color, piece.piece_type)], (PIECE_SIZE, PIECE_SIZE))
+#             pieces.append(
+#                 Piece(
+#                     chess_piece=piece,
+#                     sprite=sprite,
+#                     rect=central_rect(x, y, PIECE_SIZE, PIECE_SIZE),
+#                     square=square
+#                 )
+#             )
+    
+#     for piece in pieces:
+#         piece.update_legal_moves(board)
+    
+#     return pieces
 
 screen = _pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 _pygame.display.set_caption("Chezz.com")
