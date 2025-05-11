@@ -45,14 +45,14 @@ BOARD_CONFIG = [
     ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r']
 ]
 
-# PIECE_SCALING = {
-#     chess.PAWN: 60,
-#     chess.KNIGHT: 52,
-#     chess.BISHOP: 70,
-#     chess.ROOK: 80,
-#     chess.QUEEN: 50,
-#     chess.KING: 50
-# }
+PIECE_SCALING = {
+    "p": 60,
+    "n": 52,
+    "b": 70,
+    "r": 80,
+    "q": 50,
+    "k": 50
+}
 
 # Variables
 show_debug_info = False
@@ -212,12 +212,14 @@ class Piece:
                  worth:int,
                  colour:str,
                  direction:int = 1,
+                 size:int = PIECE_SIZE,
                  special:str = None):
         self.name = name
         if sprite is None:
-            sprite = self.create_placeholder_piece(BLACK if name.islower() else WHITE, name)
+            sprite = self.try_get_automatic_sprite(name, colour)
+            size = PIECE_SCALING[name.lower()]
         else:
-            sprite = _pygame.transform.scale(sprite, (PIECE_SIZE, PIECE_SIZE))
+            sprite = _pygame.transform.scale(sprite, (size, size))
         self.sprite = sprite
         self.square = square
         self.worth = worth
@@ -226,9 +228,18 @@ class Piece:
         self.pattern = pattern
         self.movement = pattern.update_to_position(square, direction)
         self.direction = direction # 1 for white, -1 for black
+        self.size = size
         self.special = special # "normal", "king" can move into check and castle,"jump" means ignore pieces in the way, "pawn" means can capture en passant, promotion and 2 squares first move
         self.selected = False
     
+    def try_get_automatic_sprite(self, name:str, colour:str):
+        try:
+            image = _pygame.image.load(f"Assets\\Sprites\\Theme1\\{colour[0].lower()}_{name.lower()}.png")
+            _pygame.transform.scale(image, (PIECE_SCALING[name.lower()], PIECE_SCALING[name.lower()]))
+            return image
+        except:
+            return self.create_placeholder_piece(BLACK if name.islower() else WHITE, name)
+
     def create_placeholder_piece(self, color:_pygame.Color, piece_char:str):
         surf = _pygame.Surface((50, 50), _pygame.SRCALPHA)
         color_rgb = color
@@ -305,8 +316,8 @@ class Piece:
                 _pygame.draw.circle(screen, CAPTURE_HIGHLIGHT, (ranks_locations[move.move.get_file()], files_locations[move.move.get_rank()]), CAPTURE_HIGHLIGHT_RADIUS, CAPTURE_HIGHLIGHT_WIDTH)
     
     def draw(self, screen:_pygame.Surface, ranks_locations:list[int], files_locations:list[int], turn:str):
-        self.sprite = _pygame.transform.scale(self.sprite, (PIECE_SIZE, PIECE_SIZE))
-        screen.blit(self.sprite, (ranks_locations[self.square.get_file()] - PIECE_SIZE / 2, files_locations[self.square.get_rank()] - PIECE_SIZE / 2))
+        self.sprite = _pygame.transform.scale(self.sprite, (self.size, self.size))
+        screen.blit(self.sprite, (ranks_locations[self.square.get_file()] - self.size / 2, files_locations[self.square.get_rank()] - self.size / 2))
         if self.selected and turn == self.colour:
             # _pygame.draw.circle(screen, HIGHLIGHT, (ranks_locations[self.square.get_file()], files_locations[self.square.get_rank()]), MOVE_HIGHLIGHT_RADIUS)
             self.draw_legal_moves(screen, ranks_locations, files_locations)
@@ -506,35 +517,6 @@ class ChessBoard:
                         break
 
 # FUNCTIONS
-# def load_piece_sprites():
-#     pieces = {}
-#     piece_types = {
-#         'p': chess.PAWN,
-#         'n': chess.KNIGHT,
-#         'b': chess.BISHOP,
-#         'r': chess.ROOK,
-#         'q': chess.QUEEN,
-#         'k': chess.KING
-#     }
-    
-#     try:
-#         for color in ['w', 'b']:
-#             for piece_char, piece_type in piece_types.items():
-#                 filename = f"Assets/Sprites/{color}{piece_char}.png"
-#                 if os.path.exists(filename): 
-#                     pieces[(chess.WHITE if color == 'w' else chess.BLACK, piece_type)] = pygame.image.load(filename)
-#                 else:
-#                     pieces[(chess.WHITE if color == 'w' else chess.BLACK, piece_type)] = create_placeholder_piece(color, piece_char)
-#     except:
-#         for color in [chess.WHITE, chess.BLACK]:
-#             for piece_type in piece_types.values():
-#                 pieces[(color, piece_type)] = create_placeholder_piece(
-#                     'w' if color == chess.WHITE else 'b',
-#                     next(k for k, v in piece_types.items() if v == piece_type)
-#                 )
-    
-#     return pieces
-
 def splash_screen(icons_to_show:list[_pygame.Surface]):
     alpha = 0
     dir = "+"
