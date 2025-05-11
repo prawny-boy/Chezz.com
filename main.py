@@ -243,15 +243,21 @@ class Piece:
         self.legal_moves = []
         for move in self.movement:
             if move.move.get_rank() >= 0 and move.move.get_rank() < 8 and move.move.get_file() >= 0 and move.move.get_file() < 8: # check if the move is within the board limits
+                blocked = False
                 if move.type == "normal": # check if the move is not blocked by other pieces including its landing one
                     for piece_location in opposite_pieces_locations + same_pieces_locations:
-                        for clear_space in move.need_to_be_clear:
-                            for cs in clear_space:
+                        for clear_space_group in move.need_to_be_clear:
+                            for cs in clear_space_group:
                                 if piece_location.get_rank() == cs.get_rank() and piece_location.get_file() == cs.get_file():
+                                    blocked = True
                                     break
+                            if blocked:
+                                break
+                            
                         if piece_location.get_rank() == move.move.get_rank() and piece_location.get_file() == move.move.get_file():
+                            blocked = True
                             break
-                    else: # this means that the move is not blocked by other pieces
+                    if not blocked:
                         self.legal_moves.append(move)
                 elif move.type == "capture": # check if the move is onto a piece
                     for piece_location in opposite_pieces_locations:
@@ -259,7 +265,11 @@ class Piece:
                             self.legal_moves.append(move)
                             break
                 elif move.type == "jump": # this is if the piece can jump over other pieces
-                    self.legal_moves.append(move)
+                    for piece_location in opposite_pieces_locations + same_pieces_locations:
+                        if piece_location.get_rank() == move.move.get_rank() and piece_location.get_file() == move.move.get_file():
+                            break
+                    else:
+                        self.legal_moves.append(move)
         if self.selected == True:
             print([str(move.move) for move in self.legal_moves])
 
@@ -268,7 +278,7 @@ class Piece:
     
     def draw_legal_moves(self, screen:_pygame.Surface, ranks_locations:list[int], files_locations:list[int]):
         for move in self.legal_moves:
-            if move.type == "normal":
+            if move.type == "normal" or move.type == "jump":
                 _pygame.draw.circle(screen, MOVE_HIGHLIGHT, (ranks_locations[move.move.get_file()], files_locations[move.move.get_rank()]), MOVE_HIGHLIGHT_RADIUS)
             elif move.type == "capture":
                 _pygame.draw.circle(screen, CAPTURE_HIGHLIGHT, (ranks_locations[move.move.get_file()], files_locations[move.move.get_rank()]), CAPTURE_HIGHLIGHT_RADIUS, CAPTURE_HIGHLIGHT_WIDTH)
