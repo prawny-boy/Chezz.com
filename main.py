@@ -322,6 +322,49 @@ class Piece:
             # _pygame.draw.circle(screen, HIGHLIGHT, (ranks_locations[self.square.get_file()], files_locations[self.square.get_rank()]), MOVE_HIGHLIGHT_RADIUS)
             self.draw_legal_moves(screen, ranks_locations, files_locations)
 
+class Move:
+    def __init__(self,
+                 piece: Piece,
+                 from_square:BoardLocation,
+                 to_square:BoardLocation,
+                 captured_piece:Piece = None,
+                 castling:bool = False,
+                 en_passant:bool = False,
+                 promotion:Piece = None,
+                 check:bool = False, 
+                 checkmate:bool = False):
+        self.piece = piece
+        self.from_square = from_square
+        self.to_square = to_square
+        self.captured_piece = captured_piece
+        self.castling = castling
+        self.en_passant = en_passant # Possible castling to promotion?
+        self.promotion = promotion # Promotion is the piece object that was promoted to
+        self.check = check
+        self.checkmate = checkmate
+    
+    def notation(self):
+        """
+        Gets a algebraic notation for the move.
+        https://www.chess.com/article/view/chess-notation#algebraic-notation
+        """
+        if self.castling:
+            return "O-O-O" # Edit later for other side
+        
+        if self.piece.name.lower() != "p":
+            notation = self.piece.name
+        notation += str(self.from_square)
+        if self.captured_piece:
+            notation += "x"
+        notation += str(self.to_square)
+        if self.promotion:
+            notation += "=" + self.promotion.name
+        if self.checkmate:
+            notation += "#"
+        elif self.check:
+            notation += "+"
+        return notation
+
 class ChessBoard:
     def __init__(self, 
                  x:int, y:int, 
