@@ -86,7 +86,7 @@ class Move:
         self.type = type # "normal", "capture"
     
     def __str__(self):
-        clear_str = ', '.join(
+        clear_str = ', '.join( 
             '[' + ', '.join(str(loc) for loc in group) + ']'
             for group in self.need_to_be_clear
         )
@@ -305,7 +305,7 @@ class Piece:
                             self.legal_moves.append(move)
                             break
 
-    def move_to(self, new_square:BoardLocation):
+    def move(self, new_square:BoardLocation):
         self.square = new_square
     
     def draw_legal_moves(self, screen:_pygame.Surface, ranks_locations:list[int], files_locations:list[int]):
@@ -342,7 +342,22 @@ class ChessBoard:
         self.perspective = perspective
         self.ranks_locations, self.files_locations = self.calculate_positions()
         self.selected_square = None
+        self.moves_stack = []
     
+    @staticmethod
+    def simulate_move(current_all_pieces:list[Piece], piece:Piece, move_to:BoardLocation):
+        # uncompleted
+        return current_all_pieces
+    
+    @staticmethod
+    def get_piece_at_location(all_pieces:list[Piece], location:BoardLocation):
+        for piece in all_pieces:
+            if piece.square.get_rank() == location.get_rank() and piece.square.get_file() == location.get_file():
+                return piece
+
+    def deselect_square(self):
+        self.selected_square = None
+
     def calculate_positions(self):
         ranks = [int(self.x + j * self.size + self.size / 2) for j in range(8)]
         files = [int(self.y + i * self.size + self.size / 2) for i in range(8)]
@@ -384,8 +399,33 @@ class ChessBoard:
     def get_position(self):
         # Gets the position (as in chess position) of the board and returns it as how starting_configuration is
         pass
+    
+    def log_move(self, piece:Piece, move_to:BoardLocation, takes_piece:Piece = None): # Function made by kingsley
+        self.moves_stack.append((piece.name, piece.square, move_to, takes_piece))
+        print(f"Logged Move: {self.moves_stack}")
+    
+    def pop(self, amount_of_moves:int):
+        print(f"Moving back {amount_of_moves} moves")
+        for i in range(amount_of_moves):
+            try:
+                last_move:tuple[str|BoardLocation] = self.moves_stack[-1]
+            except IndexError:
+                print(f"No moves to remove. stop: {i+1}")
+                break
+            self.moves_stack = self.moves_stack[:-1] # Remove last move
+            self.turn = "white" if self.turn == "black" else "black" # Switch turn back
+            for piece in range(len(self.all_pieces)):
+                if self.all_pieces[piece].square.get_rank() == last_move[2].get_rank() and self.all_pieces[piece].square.get_file() == last_move[2].get_file():
+                    self.all_pieces[piece].move(last_move[1])
+                    if last_move[3] is not None:
+                        self.all_pieces.append(last_move[3])
+                    print(f"Moved {last_move[0]} piece back. Moves: {self.moves_stack}")
+                    break
+            else:
+                print("Error, could not remove move")
+        print(f"Pieces: {[str(piece.square) for piece in self.all_pieces]}")
 
-    def move_piece(self, piece_location:BoardLocation, move_to:BoardLocation):
+    def move(self, piece_location:BoardLocation, move_to:BoardLocation):
         for piece in self.all_pieces:
             if piece.square.get_file() == piece_location.get_file() and piece.square.get_rank() == piece_location.get_rank():
                 if not piece.colour == self.turn:
@@ -396,8 +436,11 @@ class ChessBoard:
                         for piece2 in self.all_pieces:
                             if piece2.square.get_file() == move_to.get_file() and piece2.square.get_rank() == move_to.get_rank():
                                 self.all_pieces.remove(piece2)
-                                del piece2
-                        piece.move_to(move_to)
+                                break
+                        else:
+                            piece2 = None
+                        self.log_move(piece, move_to, piece2)
+                        piece.move(move_to)
                         self.turn = "black" if self.turn == "white" else "white" # switch turn
                         print(f"Moved {piece.name} from {piece.square} to {move_to}")
                         return True
@@ -409,7 +452,7 @@ class ChessBoard:
         clicked_square = self.coordinates_to_square(mouse_pos)
 
         if clicked_square is None:
-            self.selected_square = None
+            self.deselect_square()
             print(f"deselected because of click outside")
             return
 
@@ -424,11 +467,11 @@ class ChessBoard:
                     self.selected_square = clicked_square
                     print(f"selected piece: {clicked_piece}")
                 else:
-                    if not self.move_piece(self.selected_square, clicked_square):
+                    if not self.move(self.selected_square, clicked_square):
                         self.selected_square = clicked_square
             else:
-                if not self.move_piece(self.selected_square, clicked_square):
-                    self.selected_square = None
+                if not self.move(self.selected_square, clicked_square):
+                    self.deselect_square()
                     print("deselected square")
         else:
             if clicked_piece:
@@ -583,6 +626,10 @@ if __name__ == "__main__":
             if event.type == _pygame.MOUSEBUTTONDOWN:
                 mouse_pos = _pygame.mouse.get_pos()
                 chessboard.handle_click(mouse_pos)
+            if event.type == _pygame.KEYDOWN:
+                if event.key == _pygame.K_LEFT:
+                    chessboard.pop(1)
+                    chessboard.deselect_square()
 
         # Updates
         chessboard.update()
