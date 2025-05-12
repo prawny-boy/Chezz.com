@@ -79,7 +79,7 @@ class BoardLocation:
     def get_file(self):
         return self.file
 
-class Move:
+class Movement:
     def __init__(self, move:BoardLocation, need_to_be_clear:list[list[BoardLocation]], type:str):
         self.move = move
         self.need_to_be_clear = need_to_be_clear
@@ -106,7 +106,7 @@ class Move:
         return self.move
 
 class MovementPattern:
-    def __init__(self, name: str, pattern: list[Move]):
+    def __init__(self, name: str, pattern: list[Movement]):
         self.name = name
         self.pattern = pattern  # list of Move objects
     
@@ -114,7 +114,7 @@ class MovementPattern:
         moves_str = "\n  ".join(str(move) for move in self.pattern)
         return f"{self.name.capitalize()} Moves:\n  {moves_str}"
 
-    def update_to_position(self, location: BoardLocation, direction: int) -> list[Move]:
+    def update_to_position(self, location: BoardLocation, direction: int) -> list[Movement]:
         rank_offset = location.get_rank()
         file_offset = location.get_file()
         
@@ -137,44 +137,44 @@ class MovementPattern:
                 ]
                 for clear_group in move.need_to_be_clear]
             # create a new move with updated positions
-            new_move = Move(new_move_location, new_clear_spaces, move.type)
+            new_move = Movement(new_move_location, new_clear_spaces, move.type)
             new_pattern.append(new_move)
 
         return new_pattern
 
 class ClassicPiecesMovement:
     @staticmethod
-    def generate_linear_moves(directions: list[tuple[int, int]], max_distance: int) -> list[Move]:
+    def generate_linear_moves(directions: list[tuple[int, int]], max_distance: int) -> list[Movement]:
         moves = []
         for dx, dy in directions:
             for dist in range(1, max_distance + 1):
                 destination = BoardLocation(dist * dx, dist * dy)
                 clear_path = [BoardLocation(i * dx, i * dy) for i in range(1, dist)]  # spaces before the end
                 if clear_path:
-                    moves.append(Move(destination, [clear_path], "normal"))
-                    moves.append(Move(destination, [clear_path], "capture"))
+                    moves.append(Movement(destination, [clear_path], "normal"))
+                    moves.append(Movement(destination, [clear_path], "capture"))
                 else:
                     # for adjacent steps (like king), no need_to_be_clear
-                    moves.append(Move(destination, [], "normal"))
-                    moves.append(Move(destination, [], "capture"))
+                    moves.append(Movement(destination, [], "normal"))
+                    moves.append(Movement(destination, [], "capture"))
         return moves
 
     pawn_movement = MovementPattern("pawn", [
-        Move(BoardLocation(1, 0), [], "normal"),
-        Move(BoardLocation(2, 0), [[BoardLocation(1, 0)]], "normal"),
-        Move(BoardLocation(1, 1), [], "capture"),
-        Move(BoardLocation(1, -1), [], "capture")
+        Movement(BoardLocation(1, 0), [], "normal"),
+        Movement(BoardLocation(2, 0), [[BoardLocation(1, 0)]], "normal"),
+        Movement(BoardLocation(1, 1), [], "capture"),
+        Movement(BoardLocation(1, -1), [], "capture")
     ])
 
     knight_movement = MovementPattern("knight", [
-        Move(BoardLocation(2, 1), [], "jump"), Move(BoardLocation(2, 1), [], "jump-capture"),
-        Move(BoardLocation(2, -1), [], "jump"), Move(BoardLocation(2, -1), [], "jump-capture"),
-        Move(BoardLocation(-2, 1), [], "jump"), Move(BoardLocation(-2, 1), [], "jump-capture"),
-        Move(BoardLocation(-2, -1), [], "jump"), Move(BoardLocation(-2, -1), [], "jump-capture"),
-        Move(BoardLocation(1, 2), [], "jump"), Move(BoardLocation(1, 2), [], "jump-capture"),
-        Move(BoardLocation(1, -2), [], "jump"), Move(BoardLocation(1, -2), [], "jump-capture"),
-        Move(BoardLocation(-1, 2), [], "jump"), Move(BoardLocation(-1, 2), [], "jump-capture"),
-        Move(BoardLocation(-1, -2), [], "jump"), Move(BoardLocation(-1, -2), [], "jump-capture")
+        Movement(BoardLocation(2, 1), [], "jump"), Movement(BoardLocation(2, 1), [], "jump-capture"),
+        Movement(BoardLocation(2, -1), [], "jump"), Movement(BoardLocation(2, -1), [], "jump-capture"),
+        Movement(BoardLocation(-2, 1), [], "jump"), Movement(BoardLocation(-2, 1), [], "jump-capture"),
+        Movement(BoardLocation(-2, -1), [], "jump"), Movement(BoardLocation(-2, -1), [], "jump-capture"),
+        Movement(BoardLocation(1, 2), [], "jump"), Movement(BoardLocation(1, 2), [], "jump-capture"),
+        Movement(BoardLocation(1, -2), [], "jump"), Movement(BoardLocation(1, -2), [], "jump-capture"),
+        Movement(BoardLocation(-1, 2), [], "jump"), Movement(BoardLocation(-1, 2), [], "jump-capture"),
+        Movement(BoardLocation(-1, -2), [], "jump"), Movement(BoardLocation(-1, -2), [], "jump-capture")
     ])
 
     bishop_movement = MovementPattern(
@@ -193,14 +193,14 @@ class ClassicPiecesMovement:
     )
 
     king_movement = MovementPattern("king", [
-        Move(BoardLocation(1, 0), [], "normal"), Move(BoardLocation(1, 0), [], "capture"),
-        Move(BoardLocation(-1, 0), [], "normal"), Move(BoardLocation(-1, 0), [], "capture"),
-        Move(BoardLocation(0, 1), [], "normal"), Move(BoardLocation(0, 1), [], "capture"),
-        Move(BoardLocation(0, -1), [], "normal"), Move(BoardLocation(0, -1), [], "capture"),
-        Move(BoardLocation(1, 1), [], "normal"), Move(BoardLocation(1, 1), [], "capture"),
-        Move(BoardLocation(1, -1), [], "normal"), Move(BoardLocation(1, -1), [], "capture"),
-        Move(BoardLocation(-1, 1), [], "normal"), Move(BoardLocation(-1, 1), [], "capture"),
-        Move(BoardLocation(-1, -1), [], "normal"), Move(BoardLocation(-1, -1), [], "capture")
+        Movement(BoardLocation(1, 0), [], "normal"), Movement(BoardLocation(1, 0), [], "capture"),
+        Movement(BoardLocation(-1, 0), [], "normal"), Movement(BoardLocation(-1, 0), [], "capture"),
+        Movement(BoardLocation(0, 1), [], "normal"), Movement(BoardLocation(0, 1), [], "capture"),
+        Movement(BoardLocation(0, -1), [], "normal"), Movement(BoardLocation(0, -1), [], "capture"),
+        Movement(BoardLocation(1, 1), [], "normal"), Movement(BoardLocation(1, 1), [], "capture"),
+        Movement(BoardLocation(1, -1), [], "normal"), Movement(BoardLocation(1, -1), [], "capture"),
+        Movement(BoardLocation(-1, 1), [], "normal"), Movement(BoardLocation(-1, 1), [], "capture"),
+        Movement(BoardLocation(-1, -1), [], "normal"), Movement(BoardLocation(-1, -1), [], "capture")
     ])
 
 class Piece:
@@ -224,7 +224,7 @@ class Piece:
         self.square = square
         self.worth = worth
         self.colour = colour
-        self.legal_moves:list[Move] = []
+        self.legal_moves:list[Movement] = []
         self.pattern = pattern
         self.movement = pattern.update_to_position(square, direction)
         self.direction = direction # 1 for white, -1 for black
@@ -346,7 +346,6 @@ class ChessBoard:
     
     @staticmethod
     def simulate_move(current_all_pieces:list[Piece], piece:Piece, move_to:BoardLocation):
-        # uncompleted
         return current_all_pieces
     
     def get_piece_at_location(self, location:BoardLocation):
@@ -358,6 +357,9 @@ class ChessBoard:
                 return None
         except AttributeError:
             return None
+    
+    def attacking(self, square:BoardLocation): # Returns a list of pieces that are attacking the square
+        pass
 
     def deselect_square(self):
         self.selected_square = None
@@ -402,8 +404,8 @@ class ChessBoard:
         # Gets the position (as in chess position) of the board and returns it as how starting_configuration is
         pass
     
-    def log_move(self, piece:Piece, move_to:BoardLocation, takes_piece:Piece = None): # Function made by kingsley
-        self.moves_stack.append((piece.name, piece.square, move_to, takes_piece))
+    def log_move(self, piece:Piece, move:BoardLocation, takes_piece:Piece = None): # Function made by kingsley
+        self.moves_stack.append((piece.name, piece.square, move, takes_piece))
         print(f"Logged Move: {self.moves_stack}")
     
     def pop(self, amount_of_moves:int):
@@ -421,23 +423,23 @@ class ChessBoard:
                 self.all_pieces.append(last_move[3])
             print(f"Moved {last_move[0]} piece back. Moves: {self.moves_stack}")
 
-    def move(self, piece_location:BoardLocation, move_to:BoardLocation):
+    def move(self, piece_location:BoardLocation, move:BoardLocation):
         piece = self.get_piece_at_location(piece_location)
         if piece:
             if not piece.colour == self.turn:
                 print(f"Not your turn")
                 return False
             for legal_move in piece.legal_moves:
-                if legal_move.move.get_file() == move_to.get_file() and legal_move.move.get_rank() == move_to.get_rank():
-                    taken_piece = self.get_piece_at_location(move_to)
+                if legal_move.move.get_file() == move.get_file() and legal_move.move.get_rank() == move.get_rank():
+                    taken_piece = self.get_piece_at_location(move)
                     if taken_piece:
                         self.all_pieces.remove(taken_piece)
-                    self.log_move(piece, move_to, taken_piece) # Log move
-                    piece.move(move_to) # Move Piece
+                    self.log_move(piece, move, taken_piece) # Log move
+                    piece.move(move) # Move Piece
                     self.turn = "black" if self.turn == "white" else "white" # switch turn
-                    print(f"Moved {piece.name} from {piece.square} to {move_to}")
+                    print(f"Moved {piece.name} from {piece.square} to {move}")
                     return True
-        print(f"Move {move_to} is not legal")
+        print(f"Move {move} is not legal")
         return False
 
     def handle_click(self, mouse_pos:tuple[int, int]):
