@@ -1,11 +1,10 @@
 import pygame as _pygame
 import sys
 from gui import Button, Slider
-from settings import Settings
+from settings import settings
 from main import initiate_game
 
 # Initialize Pygame and Settings
-settings = Settings()
 _pygame.init()
 
 # Constants for the screen
