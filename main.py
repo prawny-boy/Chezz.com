@@ -10,9 +10,9 @@ _pygame.mixer.init()
 # click_sound = _pygame.mixer.Sound("Assets/Sounds/click.wav")
 # move_sound = _pygame.mixer.Sound("Assets/Sounds/move.wav")
 # Sprites
-logo = _pygame.image.load("Assets/Sprites/logo.png")
-icon = _pygame.image.load("Assets/Sprites/icon.png")
-company_logo = _pygame.image.load("Assets/Sprites/company.png")
+logo = _pygame.image.load("Assets/Sprites/Logo.png")
+icon = _pygame.image.load("Assets/Sprites/Icon.png")
+company_logo = _pygame.image.load("Assets/Sprites/Company.png")
 
 # CONSTANTS
 FRAME_RATE = 60
