@@ -1,3 +1,7 @@
+"""
+The starting point of the application which opens up main and option menus.
+"""
+
 import pygame as _pygame
 import sys
 from gui import Button, Slider
