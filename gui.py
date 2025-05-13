@@ -71,112 +71,119 @@ class Button:
         return self.rect.collidepoint(pos)
 
 
+import pygame as _pygame
+
+
 class Slider:
     def __init__(
         self,
-        x: int,
-        y: int,
-        width: int,
-        height: int,
-        labels: List[str],
-        color: Tuple[int, int, int],
-        handle_color: Tuple[int, int, int],
+        x,
+        y,
+        width,
+        height,
+        min_value,
+        max_value,
+        initial_value,
+        labels=None,
+        color=(100, 100, 100),
+        handle_color=(255, 0, 0),
     ):
         """
-        Initializes the slider with labeled values.
+        Initializes the slider with a specific range and initial value.
 
         Args:
-            x (int): The x-coordinate of the slider's top-left corner.
-            y (int): The y-coordinate of the slider's top-left corner.
+            x (int): The x-coordinate of the slider's position.
+            y (int): The y-coordinate of the slider's position.
             width (int): The width of the slider.
             height (int): The height of the slider.
-            labels (List[str]): A list of labels to represent the slider values.
-            color (Tuple[int, int, int]): The color of the slider background.
-            handle_color (Tuple[int, int, int]): The color of the slider handle.
+            min_value (int): The minimum value of the slider.
+            max_value (int): The maximum value of the slider.
+            initial_value (int): The initial value of the slider (within min_value and max_value).
+            labels (list): Optional labels for the slider (e.g., ["Low", "High"]).
+            color (tuple): The color of the slider's track.
+            handle_color (tuple): The color of the slider's handle.
         """
         self.x = x
         self.y = y
         self.width = width
         self.height = height
+        self.min_value = min_value
+        self.max_value = max_value
+        self.value = initial_value
         self.labels = labels
         self.color = color
         self.handle_color = handle_color
-
-        # Calculate the positions for the labels
-        self.label_positions = [
-            x + (i * (width // (len(labels) - 1))) for i in range(len(labels))
-        ]
-
-        # Create the handle's rectangle
         self.handle_width = 20
-        self.handle_rect = _pygame.Rect(
-            self.x, self.y + (self.height // 4), self.handle_width, self.height // 2
-        )
-        self.is_dragging = False
-        self.value_index = 0
+        self.handle_x = self.calculate_handle_position()
 
-    def draw(self, surface):
-        """
-        Draw the slider on the given surface.
+    def calculate_handle_position(self):
+        """Calculates the x-coordinate of the slider handle based on the current value."""
+        return self.x + (
+            (self.value - self.min_value) / (self.max_value - self.min_value)
+        ) * (self.width - self.handle_width)
 
-        Args:
-            surface: The Pygame surface to draw on.
-        """
-        # Draw the slider background
-        _pygame.draw.rect(
-            surface, self.color, _pygame.Rect(self.x, self.y, self.width, self.height)
-        )
+    def draw(self, screen):
+        """Draw the slider on the screen."""
+        # Draw the track
+        _pygame.draw.rect(screen, self.color, (self.x, self.y, self.width, self.height))
 
         # Draw the handle
-        _pygame.draw.rect(surface, self.handle_color, self.handle_rect)
-
-        # Draw labels
-        font = _pygame.font.Font(None, 30)
-        for i, label in enumerate(self.labels):
-            label_surface = font.render(label, True, (255, 255, 255))
-            label_rect = label_surface.get_rect(
-                center=(self.label_positions[i], self.y + self.height + 10)
-            )
-            surface.blit(label_surface, label_rect)
-
-    def update(self, event):
-        """
-        Update the slider based on mouse events.
-
-        Args:
-            event: The Pygame event to process.
-        """
-        if event.type == _pygame.MOUSEBUTTONDOWN:
-            if self.handle_rect.collidepoint(event.pos):
-                self.is_dragging = True
-        elif event.type == _pygame.MOUSEBUTTONUP:
-            self.is_dragging = False
-        elif event.type == _pygame.MOUSEMOTION:
-            if self.is_dragging:
-                new_x = max(
-                    self.x, min(event.pos[0], self.x + self.width - self.handle_width)
-                )
-                self.handle_rect.x = new_x
-                self.update_value()
-
-    def update_value(self):
-        """
-        Update the slider's value based on the handle's position.
-        """
-        # Get the relative position of the handle within the slider
-        rel_pos = self.handle_rect.centerx - self.x
-        # Calculate the index of the label based on the position of the handle
-        self.value_index = min(
-            len(self.labels) - 1,
-            max(0, rel_pos // (self.width // (len(self.labels) - 1))),
+        _pygame.draw.rect(
+            screen,
+            self.handle_color,
+            (
+                self.handle_x,
+                self.y - self.height // 2,
+                self.handle_width,
+                self.height * 2,
+            ),
         )
 
-    @property
-    def value(self):
-        """
-        Get the current value of the slider, represented by the label at the handle's position.
+        # Draw labels if provided
+        if self.labels:
+            font = _pygame.font.Font(None, 24)
+            label_font = _pygame.font.Font(None, 20)
+            label_width = self.width // (len(self.labels) - 1)
+            for i, label in enumerate(self.labels):
+                label_surface = label_font.render(label, True, (255, 255, 255))
+                label_x = self.x + i * label_width
+                screen.blit(
+                    label_surface,
+                    (label_x - label_surface.get_width() // 2, self.y + self.height),
+                )
 
-        Returns:
-            str: The label corresponding to the current slider value.
-        """
-        return self.labels[self.value_index]
+        # Draw the current value next to the slider
+        font = _pygame.font.Font(None, 36)
+        value_text = font.render(str(self.value), True, (255, 255, 255))
+        screen.blit(
+            value_text,
+            (self.x + self.width + 10, self.y - value_text.get_height() // 2),
+        )
+
+    def update(self, event):
+        """Update the handle's position based on mouse drag events."""
+        if event.type == _pygame.MOUSEBUTTONDOWN:
+            if self.is_hovered(event.pos):
+                self.is_dragging = True
+        elif event.type == _pygame.MOUSEMOTION:
+            if hasattr(self, "is_dragging") and self.is_dragging:
+                # Restrict the handle's movement to the width of the slider
+                mouse_x = max(
+                    self.x, min(event.pos[0], self.x + self.width - self.handle_width)
+                )
+                self.handle_x = mouse_x
+                # Calculate the new value based on the handle's position
+                self.value = int(
+                    self.min_value
+                    + ((self.handle_x - self.x) / (self.width - self.handle_width))
+                    * (self.max_value - self.min_value)
+                )
+        elif event.type == _pygame.MOUSEBUTTONUP:
+            self.is_dragging = False
+
+    def is_hovered(self, pos):
+        """Check if the mouse is over the slider handle."""
+        return (
+            self.x <= pos[0] <= self.x + self.width
+            and self.y - self.height // 2 <= pos[1] <= self.y + self.height // 2
+        )
