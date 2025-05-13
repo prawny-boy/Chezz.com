@@ -26,3 +26,6 @@ class Settings:
 
     def __setitem__(self, key, value):
         self.data[key] = value
+
+
+settings = Settings()

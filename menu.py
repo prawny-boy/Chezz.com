@@ -1,18 +1,24 @@
 import pygame as _pygame
 import sys
 from gui import Button, Slider
+from settings import Settings
+from main import initiate_game
 
-# Initialize Pygame
+# Initialize Pygame and Settings
+settings = Settings()
 _pygame.init()
 
 # Constants for the screen
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
-FPS = 60
+SCREEN_WIDTH = settings["screen"]["width"]
+SCREEN_HEIGHT = settings["screen"]["height"]
+FPS = settings["screen"]["fps"]
 
 # Create the screen
 screen = _pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-_pygame.display.set_caption("Main Menu")
+_pygame.display.set_caption("Chezz.com")
+icon = _pygame.image.load("Assets/Sprites/Icon.png")
+_pygame.display.set_icon(icon)
+clock = _pygame.time.Clock()
 
 
 class OptionMenu:
@@ -144,7 +150,7 @@ class Menu:
         if event.type == _pygame.MOUSEBUTTONDOWN:
             if self.new_game_button.is_hovered(event.pos):
                 print("New Game clicked!")
-                # Insert the logic for starting a new game
+                return "new_game"
             elif self.options_button.is_hovered(event.pos):
                 return "options"  # Switch to options menu
             elif self.quit_button.is_hovered(event.pos):
@@ -154,8 +160,55 @@ class Menu:
         return None
 
 
+def splash_screen(icons_to_show: list[_pygame.Surface]):
+    alpha = 0
+    dir = "+"
+    icon_idx = 0
+    for icon in icons_to_show:
+        icons_to_show[icons_to_show.index(icon)] = _pygame.transform.scale(
+            icon, (200, 200)
+        )
+    icon = icons_to_show[icon_idx]
+    while True:
+        for event in _pygame.event.get():
+            if event.type == _pygame.QUIT:
+                _pygame.quit()
+                exit()
+            if event.type == _pygame.MOUSEBUTTONDOWN:
+                dir = "-"
+
+        if dir == "+":
+            alpha += 2
+            if alpha == 300:
+                dir = "-"
+        else:
+            alpha -= 2
+            if alpha == 0:
+                icon_idx += 1
+                try:
+                    icon = icons_to_show[icon_idx]
+                except IndexError:
+                    screen.fill((0, 0, 0))
+                    return
+                dir = "+"
+
+        screen.fill((0, 0, 0))
+        icon.set_alpha(alpha)
+        screen.blit(
+            icon,
+            (
+                SCREEN_WIDTH / 2 - icon.get_width() / 2,
+                SCREEN_HEIGHT / 2 - icon.get_height() / 2,
+            ),
+        )
+        _pygame.display.flip()
+        clock.tick(FPS)
+
+
 def main():
-    clock = _pygame.time.Clock()
+
+    # splash_screen([company_logo, logo])
+
     menu = Menu()
     options_menu = OptionMenu(screen)
 
@@ -178,6 +231,8 @@ def main():
                 if event.type == _pygame.QUIT:
                     running = False
                 result = menu.handle_event(event)
+                if result == "new_game":
+                    initiate_game()
                 if result == "options":
                     in_options_menu = True  # Switch to options menu
 
