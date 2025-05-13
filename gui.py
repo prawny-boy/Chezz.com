@@ -71,9 +71,6 @@ class Button:
         return self.rect.collidepoint(pos)
 
 
-import pygame as _pygame
-
-
 class Slider:
     def __init__(
         self,

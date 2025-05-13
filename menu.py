@@ -2,7 +2,7 @@ import pygame as _pygame
 import sys
 from gui import Button, Slider
 from settings import settings
-from main import initiate_game
+from game import initiate_game
 
 # Initialize Pygame and Settings
 _pygame.init()
@@ -83,6 +83,10 @@ class OptionMenu:
         if event.type == _pygame.MOUSEBUTTONDOWN:
             if self.back_button.is_hovered(event.pos):
                 print("Back button clicked!")
+                # saving the difficulty
+                settings["game"]["difficulty"] = self.difficulty_slider.value
+                settings.save()
+                print(f"Difficulty was saved to {self.difficulty_slider.value}")
                 return True  # This signals that the menu should return to the main menu
 
         return False

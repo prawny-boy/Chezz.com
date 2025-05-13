@@ -1,42 +1,105 @@
 {
-  "screen": {
-    "width": 800,
-    "height": 600,
-    "fps": 60
-  },
-"board": {
-  "size": 500,
-  "piece_size": 50,
-  "move_highlight_radius": 7.5,
-  "capture_highlight_radius": 30,
-  "capture_highlight_width": 3
-},
-  "colors": {
-    "slider": [100, 100, 100],
-    "slider_handle": [255, 0, 0],
-    "back_button": [0, 200, 0],
-    "back_text": [255, 255, 255],
-    "new_game_button": [0, 255, 0],
-    "options_button": [0, 0, 255],
-    "quit_button": [255, 0, 0],
-    "button_text": [255, 255, 255],
-    "background": [0, 0, 0],
-    "text": [255, 255, 255],
-    "white": [255, 255, 255],
-    "black": [0, 0, 0],
-    "red": [255, 0, 0],
-    "green": [0, 255, 0]
-  },
-  "slider": {
-    "width": 400,
-    "height": 50,
-    "labels": ["Easy", "Medium", "Hard"],
-    "min": 0,
-    "max": 2,
-    "initial": 1
-  },
-  "button": {
-    "width": 200,
-    "height": 50
-  }
+    "screen": {
+        "width": 800,
+        "height": 600,
+        "fps": 60
+    },
+    "board": {
+        "size": 500,
+        "piece_size": 50,
+        "move_highlight_radius": 7.5,
+        "capture_highlight_radius": 30,
+        "capture_highlight_width": 3
+    },
+    "colors": {
+        "slider": [
+            100,
+            100,
+            100
+        ],
+        "slider_handle": [
+            255,
+            0,
+            0
+        ],
+        "back_button": [
+            0,
+            200,
+            0
+        ],
+        "back_text": [
+            255,
+            255,
+            255
+        ],
+        "new_game_button": [
+            0,
+            255,
+            0
+        ],
+        "options_button": [
+            0,
+            0,
+            255
+        ],
+        "quit_button": [
+            255,
+            0,
+            0
+        ],
+        "button_text": [
+            255,
+            255,
+            255
+        ],
+        "background": [
+            0,
+            0,
+            0
+        ],
+        "text": [
+            255,
+            255,
+            255
+        ],
+        "white": [
+            255,
+            255,
+            255
+        ],
+        "black": [
+            0,
+            0,
+            0
+        ],
+        "red": [
+            255,
+            0,
+            0
+        ],
+        "green": [
+            0,
+            255,
+            0
+        ]
+    },
+    "slider": {
+        "width": 400,
+        "height": 50,
+        "labels": [
+            "Easy",
+            "Medium",
+            "Hard"
+        ],
+        "min": 0,
+        "max": 2,
+        "initial": 1
+    },
+    "button": {
+        "width": 200,
+        "height": 50
+    },
+    "game": {
+        "difficulty": 0
+    }
 }

@@ -755,6 +755,7 @@ def initiate_game():
     icon = _pygame.image.load("Assets/Sprites/Icon.png")
     _pygame.display.set_icon(icon)
     clock = _pygame.time.Clock()
+    difficulty = settings["game"]["difficulty"]
     # Create Chess Board and Pieces
     chessboard = ChessBoard(
         x=SCREEN_WIDTH / 2 - BOARD_SIZE / 2,
