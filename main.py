@@ -13,6 +13,7 @@ _pygame.mixer.init()
 logo = _pygame.image.load("Assets/Sprites/logo.png")
 icon = _pygame.image.load("Assets/Sprites/icon.png")
 company_logo = _pygame.image.load("Assets/Sprites/company.png")
+theme = 'Theme1'
 
 # CONSTANTS
 FRAME_RATE = 60
@@ -45,7 +46,7 @@ BOARD_CONFIG = [
     ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r']
 ]
 
-with open("Assets/Sprites/Theme1/theme1.txt", "r") as file:
+with open(f"Assets/Sprites/{theme}/{theme}.txt", "r") as file:
     piece_scaling = {}
     for i in file.read().splitlines():
         piece_scaling[i.split(":")[0]] = int(i.split(":")[1])
@@ -207,8 +208,8 @@ class Piece:
                  sprite:_pygame.Surface, 
                  worth:int,
                  colour:str,
+                 size:int,
                  direction:int = 1,
-                 size:int = PIECE_SIZE,
                  special:str = None):
         self.name = name
         if sprite is None:
@@ -427,7 +428,7 @@ class ChessBoard:
             for file in range(8):
                 piece_name = starting_configuration[rank][file]
                 if piece_name is not None:
-                    pieces.append(Piece(**pieces_dict[piece_name.lower()], name=piece_name, square=BoardLocation(rank, file), colour="white" if piece_name.isupper() else "black", direction=1 if piece_name.isupper() else -1))
+                    pieces.append(Piece(**pieces_dict[piece_name.lower()], name=piece_name, square=BoardLocation(rank, file), colour="white" if piece_name.isupper() else "black", direction=1 if piece_name.isupper() else -1, size = piece_scaling[piece_name.lower()]))
                     print(f"Piece {piece_name} created at {rank}, {file}")
         
         return pieces
@@ -477,9 +478,9 @@ class ChessBoard:
                     if taken_piece:
                         self.all_pieces.remove(taken_piece)
                     self.log_move(piece, move, taken_piece) # Log move
+                    print(f"Moved {piece.name} from {piece.square} to {move}")
                     piece.move(move) # Move Piece
                     self.turn = "black" if self.turn == "white" else "white" # switch turn
-                    print(f"Moved {piece.name} from {piece.square} to {move}")
                     return True
         print(f"Move {move} is not legal")
         return False
@@ -635,7 +636,7 @@ _pygame.display.set_icon(icon)
 clock = _pygame.time.Clock()
 
 if __name__ == "__main__":
-    splash_screen([company_logo, logo])
+#    splash_screen([company_logo, logo])
 
     # Create Chess Board and Pieces
     chessboard = ChessBoard(x = SCREEN_WIDTH / 2 - BOARD_SIZE / 2, 
