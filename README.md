@@ -1,0 +1,7 @@
+**Welcome to Chezz.com™**—the premier destination for all things chezz-related. Please read the following disclaimer carefully:
+* **Trademark Notice**: All trademarks, service marks, and trade names (e.g., "Chezz™", "King's Pawn™", "Queen's Gambit™") used herein are fictitious and are the property of their respective imaginary owners. Any resemblance to actual trademarks, living or dead, is purely coincidental.
+* **Affiliation Disclaimer**: Chezz.com™ is a wholly independent entity and is not affiliated with, endorsed by, or in any way connected to any real-world chess organizations, federations, or clubs. Our content is purely for entertainment and satirical purposes.
+* **Content Accuracy**: While we strive for accuracy in our chezz-related content, we make no guarantees regarding the correctness, completeness, or reliability of any information presented. Any reliance you place on such information is strictly at your own risk.
+* **Humor Alert**: Our website contains satirical and humorous content. If you find yourself taking any of it seriously, we recommend a hearty laugh and perhaps a game of real chess to regain perspective.
+* **Legalese**: By accessing Chezz.com™, you agree that we are not liable for any misunderstandings, misinterpretations, or misplays that may result from the use of our content. All chezz moves are final, and no takebacks are allowed.
+Thank you for visiting Chezz.com™. Enjoy your stay, and remember: it's all just a game of chezz!
