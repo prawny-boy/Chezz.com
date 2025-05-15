@@ -7,7 +7,7 @@ pygame.font.init()
 
 centered_rect = lambda x, y, width, height: pygame.Rect(x - width // 2, y - height // 2, width, height)
 
-class SimpleText:
+class Text:
     def __init__(self, text, x, y, font_filepath, font_size, colour):
         self.text = text
         self.x = x
@@ -23,7 +23,7 @@ class SimpleText:
 
 class Button:
     def __init__(self, text, x, y, width, height, font_filepath, font_size, text_colour, button_colour, outline_colour):
-        self.text = SimpleText(text = text,
+        self.text = Text(text = text,
                                x = x,
                                y = y,
                                font_filepath = font_filepath,
@@ -43,7 +43,7 @@ screen = pygame.display.set_mode((800, 600))
 pygame.display.set_caption("Chezz.com")
 clock = pygame.time.Clock()
 
-text = SimpleText(text = "Chezz.com", 
+text = Text(text = "Chezz.com", 
                   x = 400, 
                   y = 300, 
                   font_filepath = 'Assets/Fonts/AovelSansRounded-rdDL.ttf', 
