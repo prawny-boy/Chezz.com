@@ -69,6 +69,12 @@ class BoardLocation:
         else:
             return f"{["a", "b", "c", "d", "e", "f", "g", "h"][self.file]}{self.rank + 1}"
     
+    def __eq__(self, other):
+        if isinstance(other, BoardLocation):
+            return self.rank == other.rank and self.file == other.file
+        else:
+            return NotImplemented
+
     def offset(self, offset_rank:int, offset_file:int):
         self.rank += offset_rank
         self.file += offset_file
@@ -262,13 +268,13 @@ class Piece:
                     for piece_location in opposite_pieces_locations + same_pieces_locations:
                         for clear_space_group in move.need_to_be_clear:
                             for cs in clear_space_group:
-                                if piece_location.get_rank() == cs.get_rank() and piece_location.get_file() == cs.get_file():
+                                if piece_location == cs:
                                     blocked = True
                                     break
                             if blocked:
                                 break
                             
-                        if piece_location.get_rank() == move.move.get_rank() and piece_location.get_file() == move.move.get_file():
+                        if piece_location == move.move:
                             blocked = True
                             break
                     if not blocked:
@@ -279,7 +285,7 @@ class Piece:
                     for clear_path in move.need_to_be_clear:
                         for cs in clear_path:
                             for piece_location in opposite_pieces_locations + same_pieces_locations:
-                                if piece_location.get_rank() == cs.get_rank() and piece_location.get_file() == cs.get_file():
+                                if piece_location == cs:
                                     is_clear = False
                                     break
                             if not is_clear:
@@ -290,18 +296,18 @@ class Piece:
                     if is_clear:
                         # Then check if the destination has an enemy piece
                         for piece_location in opposite_pieces_locations:
-                            if piece_location.get_rank() == move.move.get_rank() and piece_location.get_file() == move.move.get_file():
+                            if piece_location == move.move:
                                 self.legal_moves.append(move)
                                 break
                 elif move.type == "jump": # this is if the piece can jump over other pieces
                     for piece_location in opposite_pieces_locations + same_pieces_locations:
-                        if piece_location.get_rank() == move.move.get_rank() and piece_location.get_file() == move.move.get_file():
+                        if piece_location == move.move:
                             break
                     else:
                         self.legal_moves.append(move)
                 elif move.type == "jump-capture": # this is if the piece can jump over other pieces and capture them
                     for piece_location in opposite_pieces_locations:
-                        if piece_location.get_rank() == move.move.get_rank() and piece_location.get_file() == move.move.get_file():
+                        if piece_location == move.move:
                             self.legal_moves.append(move)
                             break
 
@@ -397,7 +403,7 @@ class ChessBoard:
     def get_piece_at_location(self, location:BoardLocation):
         try:
             for piece in self.all_pieces:
-                if piece.square.get_rank() == location.get_rank() and piece.square.get_file() == location.get_file():
+                if piece.square == location:
                     return piece
             else:
                 return None
@@ -405,7 +411,10 @@ class ChessBoard:
             return None
     
     def attacking(self, square:BoardLocation): # Returns a list of pieces that are attacking the square
-        pass
+        for piece in self.all_pieces:
+            for legal_move in piece.legal_moves:
+                if legal_move.type == "capture":
+                    pass
 
     def deselect_square(self):
         self.selected_square = None
@@ -476,7 +485,7 @@ class ChessBoard:
                 print(f"Not your turn")
                 return False
             for legal_move in piece.legal_moves:
-                if legal_move.move.get_file() == move.get_file() and legal_move.move.get_rank() == move.get_rank():
+                if legal_move.move == move:
                     taken_piece = self.get_piece_at_location(move)
                     if taken_piece:
                         self.all_pieces.remove(taken_piece)
@@ -547,7 +556,7 @@ class ChessBoard:
                     color = self.dark
                 if self.selected_square is not None:
 
-                    if self.selected_square.get_rank() == file and self.selected_square.get_file() == rank:
+                    if self.selected_square == BoardLocation(file, rank):
                         color = HIGHLIGHT
                 _pygame.draw.rect(screen, color, (self.ranks_locations[rank] - self.size / 2, self.files_locations[file] - self.size / 2, self.size + 1, self.size + 1))
 
