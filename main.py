@@ -1,6 +1,7 @@
 import pygame
 import chess
 import os
+import sys
 
 pygame.init()
 pygame.font.init()
@@ -36,6 +37,27 @@ BOARD_CONFIG = [
     ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'], 
     ['R', 'N', 'B', 'K', 'Q', 'B', 'N', 'R']
 ]
+
+class PieceScaling:
+    Theme1 = {
+        chess.PAWN: 60,
+        chess.KNIGHT: 52,
+        chess.BISHOP: 70,
+        chess.ROOK: 80,
+        chess.QUEEN: 50,
+        chess.KING: 50
+    }
+    
+    LEBOB = {
+        chess.PAWN: 60,
+        chess.KNIGHT: 52,
+        chess.BISHOP: 70,
+        chess.ROOK: 80,
+        chess.QUEEN: 50,
+        chess.KING: 50
+    }
+    
+theme_scaling = PieceScaling.LEBOB
 
 # FUNCTIONS
 def load_piece_sprites():
@@ -107,15 +129,6 @@ BOARD_CONFIG = [
     ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'], 
     ['R', 'N', 'B', 'K', 'Q', 'B', 'N', 'R']
 ]
-
-PIECE_SCALING = {
-    chess.PAWN: 60,
-    chess.KNIGHT: 52,
-    chess.BISHOP: 70,
-    chess.ROOK: 80,
-    chess.QUEEN: 50,
-    chess.KING: 50
-}
 
 def calculate_board_coordinates(board_x, board_y, board_size):
     square_size = board_size / 8
@@ -337,12 +350,12 @@ def create_pieces_from_board(board):
         piece = board.piece_at(square)
         if piece:
             x, y = square_to_coords(square)
-            sprite = pygame.transform.scale(piece_sprites[(piece.color, piece.piece_type)], (PIECE_SCALING[piece.piece_type], PIECE_SCALING[piece.piece_type]))
+            sprite = pygame.transform.scale(piece_sprites[(piece.color, piece.piece_type)], (theme_scaling[piece.piece_type], theme_scaling[piece.piece_type]))
             pieces.append(
                 Piece(
                     chess_piece=piece,
                     sprite=sprite,
-                    rect=central_rect(x, y, PIECE_SCALING[piece.piece_type], PIECE_SCALING[piece.piece_type]),
+                    rect=central_rect(x, y, theme_scaling[piece.piece_type], theme_scaling[piece.piece_type]),
                     square=square
                 )
             )
