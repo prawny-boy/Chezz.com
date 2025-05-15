@@ -343,6 +343,9 @@ class Move:
         self.check = check
         self.checkmate = checkmate
     
+    def __str__(self):
+        return self.notation()
+
     def notation(self):
         """
         Gets a algebraic notation for the move.
@@ -448,23 +451,23 @@ class ChessBoard:
         pass
     
     def log_move(self, piece:Piece, move:BoardLocation, takes_piece:Piece = None): # Function made by kingsley
-        self.moves_stack.append((piece.name, piece.square, move, takes_piece))
+        self.moves_stack.append(Move(piece, piece.square, move, takes_piece))
         print(f"Logged Move: {self.moves_stack}")
     
     def pop(self, amount_of_moves:int):
         print(f"Moving back {amount_of_moves} moves")
         for _ in range(amount_of_moves):
             try:
-                last_move:tuple[str|BoardLocation] = self.moves_stack[-1]
+                last_move:Move = self.moves_stack[-1]
             except IndexError:
                 break
             self.moves_stack = self.moves_stack[:-1] # Remove last move
             self.turn = "white" if self.turn == "black" else "black" # Switch turn back
-            piece = self.get_piece_at_location(last_move[2])
-            piece.move(last_move[1])
-            if last_move[3]:
-                self.all_pieces.append(last_move[3])
-            print(f"Moved {last_move[0]} piece back. Moves: {self.moves_stack}")
+            piece = self.get_piece_at_location(last_move.to_square)
+            piece.move(last_move.from_square)
+            if last_move.captured_piece:
+                self.all_pieces.append(last_move.captured_piece)
+            print(f"Moved {last_move.piece.name} piece back. Moves: {self.moves_stack}")
 
     def move(self, piece_location:BoardLocation, move:BoardLocation):
         piece = self.get_piece_at_location(piece_location)
@@ -636,7 +639,7 @@ _pygame.display.set_icon(icon)
 clock = _pygame.time.Clock()
 
 if __name__ == "__main__":
-    # splash_screen([company_logo, logo])
+    splash_screen([company_logo, logo])
 
     # Create Chess Board and Pieces
     chessboard = ChessBoard(x = SCREEN_WIDTH / 2 - BOARD_SIZE / 2, 
