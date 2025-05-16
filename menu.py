@@ -6,7 +6,7 @@ import pygame as _pygame
 import sys
 from gui import Button, Slider
 from settings import settings
-from game import initiate_game
+from main import initiate_game
 
 # Initialize Pygame and Settings
 _pygame.init()
