@@ -9,7 +9,15 @@
         "piece_size": 50,
         "move_highlight_radius": 7.5,
         "capture_highlight_radius": 30,
-        "capture_highlight_width": 3
+        "capture_highlight_width": 3,
+        "piece_scaling": {
+            "p": 60,
+            "n": 52,
+            "b": 70,
+            "r": 80,
+            "q": 50,
+            "k": 50
+        }
     },
     "colors": {
         "slider": [
@@ -100,6 +108,6 @@
         "height": 50
     },
     "game": {
-        "difficulty": 0
+        "difficulty": 2
     }
 }
