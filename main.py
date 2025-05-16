@@ -892,7 +892,14 @@ clock = _pygame.time.Clock()
 
 
 if __name__ == "__main__":
-    splash_screen([company_logo, logo])
+    splash_screen(
+        [company_logo, logo],
+        screen=screen,
+        width=SCREEN_WIDTH,
+        height=SCREEN_HEIGHT,
+        clock=clock,
+        framerate=FRAME_RATE,
+    )
 
     # Create Chess Board and Pieces
     chessboard = ChessBoard(
