@@ -194,6 +194,9 @@ def splash_screen(
     framerate: int,
     clock: _pygame.time.Clock,
 ):
+    """
+    Shows the logo of the game and the company.
+    """
     alpha = 0
     dir = "+"
     icon_idx = 0

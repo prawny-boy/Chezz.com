@@ -10,9 +10,6 @@ from menu import Menu, OptionMenu
 _pygame.init()
 _pygame.font.init()
 _pygame.mixer.init()
-SCREEN_WIDTH = settings["screen"]["width"]
-SCREEN_HEIGHT = settings["screen"]["height"]
-
 
 # ASSETS
 # Sounds
@@ -24,8 +21,8 @@ icon = _pygame.image.load("Assets/Sprites/Icon.png")
 company_logo = _pygame.image.load("Assets/Sprites/Company.png")
 
 # CONSTANTS
-# SCREEN_WIDTH = settings["screen"]["width"]
-# SCREEN_HEIGHT = settings["screen"]["height"]
+SCREEN_WIDTH = settings["screen"]["width"]
+SCREEN_HEIGHT = settings["screen"]["height"]
 FRAME_RATE = settings["screen"]["fps"]
 PIECE_SIZE = settings["board"]["piece_size"]
 BOARD_SIZE = settings["board"]["size"]
@@ -39,82 +36,11 @@ BEIGE = _pygame.Color("#f0d9b5")
 HIGHLIGHT = _pygame.Color("#8877DD99")
 MOVE_HIGHLIGHT = _pygame.Color("#5fa14460")
 CAPTURE_HIGHLIGHT = _pygame.Color("#d42a2a60")
-# CLASSES
-
-
-# FUNCTIONS
 
 screen = _pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 _pygame.display.set_caption("Chezz.com")
 _pygame.display.set_icon(icon)
 clock = _pygame.time.Clock()
-
-# def initiate_game():
-#     screen = _pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-#     _pygame.display.set_caption("Chezz.com")
-#     icon = _pygame.image.load("Assets/Sprites/Icon.png")
-#     _pygame.display.set_icon(icon)
-#     clock = _pygame.time.Clock()
-#     difficulty = settings["game"]["difficulty"]
-#     # Create Chess Board and Pieces
-#     chessboard = ChessBoard(
-#         x=SCREEN_WIDTH / 2 - BOARD_SIZE / 2,
-#         y=SCREEN_HEIGHT / 2 - BOARD_SIZE / 2,
-#         size=BOARD_SIZE,
-#         starting_configuration=BOARD_CONFIG,
-#         pieces={
-#             "p": {
-#                 "pattern": ClassicPiecesMovement.pawn_movement,
-#                 "sprite": None,
-#                 "worth": 1,
-#             },
-#             "r": {
-#                 "pattern": ClassicPiecesMovement.rook_movement,
-#                 "sprite": None,
-#                 "worth": 5,
-#             },
-#             "n": {
-#                 "pattern": ClassicPiecesMovement.knight_movement,
-#                 "sprite": None,
-#                 "worth": 3,
-#             },
-#             "b": {
-#                 "pattern": ClassicPiecesMovement.bishop_movement,
-#                 "sprite": None,
-#                 "worth": 3,
-#             },
-#             "q": {
-#                 "pattern": ClassicPiecesMovement.queen_movement,
-#                 "sprite": None,
-#                 "worth": 9,
-#             },
-#             "k": {
-#                 "pattern": ClassicPiecesMovement.king_movement,
-#                 "sprite": None,
-#                 "worth": 0,
-#             },
-#         },
-#     )
-#
-#     while True:
-#         for event in _pygame.event.get():
-#             if event.type == _pygame.QUIT:
-#                 _pygame.quit()
-#                 _exit()
-#
-#             if event.type == _pygame.MOUSEBUTTONDOWN:
-#                 mouse_pos = _pygame.mouse.get_pos()
-#                 chessboard.handle_click(mouse_pos)
-#
-#         # Updates
-#         chessboard.update()
-#
-#         # Drawing the screen
-#         screen.fill(BLACK)
-#         chessboard.draw(screen)
-#
-#         _pygame.display.flip()
-#         clock.tick(FRAME_RATE)
 
 
 def initiate_game():
@@ -227,5 +153,3 @@ if __name__ == "__main__":
         clock.tick(FRAME_RATE)
 
     _pygame.quit()
-
-    # Create Chess Board and Pieces
