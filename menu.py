@@ -6,7 +6,6 @@ import pygame as _pygame
 import sys
 from gui import Button, Slider
 from settings import settings
-from main import initiate_game
 
 # Initialize Pygame and Settings
 _pygame.init()
@@ -210,48 +209,3 @@ def splash_screen(icons_to_show: list[_pygame.Surface]):
         )
         _pygame.display.flip()
         clock.tick(FPS)
-
-
-def main():
-
-    # splash_screen([company_logo, logo])
-
-    menu = Menu()
-    options_menu = OptionMenu(screen)
-
-    running = True
-    in_options_menu = False  # Flag to track if we're in the options menu
-
-    while running:
-        screen.fill((0, 0, 0))  # Clear the screen
-
-        if in_options_menu:
-            # Handle the option menu
-            if options_menu.update():  # If "Back" is clicked in OptionMenu
-                in_options_menu = False  # Go back to main menu
-        else:
-            # Handle the main menu
-            menu.draw(screen)
-
-            # Handle events for the main menu
-            for event in _pygame.event.get():
-                if event.type == _pygame.QUIT:
-                    running = False
-                result = menu.handle_event(event)
-                if result == "new_game":
-                    initiate_game()
-                if result == "options":
-                    in_options_menu = True  # Switch to options menu
-
-        # Update the screen
-        _pygame.display.flip()
-
-        # Frame rate
-        clock.tick(FPS)
-
-    _pygame.quit()
-
-
-# Start the main loop
-if __name__ == "__main__":
-    main()

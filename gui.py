@@ -2,7 +2,6 @@
 Implements the gui elements of pygame such as button and slider
 """
 
-import pygame
 import pygame as _pygame
 from typing import Optional, Tuple, List
 
@@ -189,11 +188,11 @@ class Slider:
 
 def splash_screen(
     icons_to_show: list[_pygame.Surface],
-    screen: pygame.Surface,
-    width: int,
-    height: int,
+    screen: _pygame.Surface,
+    screen_width: int,
+    screen_height: int,
     framerate: int,
-    clock: pygame.time.Clock,
+    clock: _pygame.time.Clock,
 ):
     alpha = 0
     dir = "+"
@@ -231,8 +230,8 @@ def splash_screen(
         screen.blit(
             icon,
             (
-                width / 2 - icon.get_width() / 2,
-                height / 2 - icon.get_height() / 2,
+                screen_width / 2 - icon.get_width() / 2,
+                screen_height / 2 - icon.get_height() / 2,
             ),
         )
         _pygame.display.flip()
