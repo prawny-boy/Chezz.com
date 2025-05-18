@@ -353,9 +353,9 @@ class ChessBoard:
     def __init__(self, 
                  x:int, y:int, 
                  size: int, 
-                 starting_configuration:list[list[str]] = BOARD_CONFIG,
-                 turn:str = "white",
-                 pieces:dict[str, dict] = None,
+                 starting_configuration:list[list[str]],
+                 turn:str,
+                 pieces:dict[str, dict],
                  perspective:str = "white",
                  dark: _pygame.Color = BROWN,
                  light: _pygame.Color = BEIGE): 
@@ -386,10 +386,12 @@ class ChessBoard:
             return None
     
     def attacking(self, square:BoardLocation): # Returns a list of pieces that are attacking the square
+        attacking_pieces = []
         for piece in self.all_pieces:
             for legal_move in piece.legal_moves:
-                if legal_move.type == "capture":
-                    pass
+                if legal_move.type == "capture" and legal_move.move == square:
+                    attacking_pieces.append(piece)
+        return attacking_pieces
 
     def deselect_square(self):
         self.selected_square = None
@@ -432,7 +434,61 @@ class ChessBoard:
 
     def get_position(self):
         # Gets the position (as in chess position) of the board and returns it as how starting_configuration is
-        pass
+        position_list = [[None for _ in range(8)] for _ in range(8)]
+        for piece in self.all_pieces:
+            for rank in range(8):
+                for file in range(8):
+                    if piece.square == BoardLocation(rank, file):
+                        position_list[rank][file] = piece.name
+        return position_list
+
+    def get_fen(self):
+        """
+        Returns the FEN representation of the board
+        Field 1: Pieces locations
+        Field 2: Active colour
+        Field 3: Castling rights
+        Field 4: En passant target square
+        Field 5: Halfmove clock
+        Field 6: Fullmove number
+        https://www.chess.com/terms/fen-chess#what-is-fen
+
+        To copy for chess.com do f'[FEN {fen_string}]'
+        """
+        position_list = self.get_position()[::-1]
+        print(position_list)
+        fen_string = ""
+        # get these things
+        castling_rights = ["K", "Q", "k", "q"]
+        en_passant_target = "-"
+        halfmove_clock = 0
+        fullmove_number = 0
+
+        # Pieces Locations
+        for rank in position_list:
+            empty_spaces = 0
+            for square in rank:
+                if square is None:
+                    empty_spaces += 1
+                else:
+                    if empty_spaces > 0:
+                        fen_string += str(empty_spaces)
+                        empty_spaces = 0
+                    fen_string += square
+            if empty_spaces > 0:
+                fen_string += str(empty_spaces)
+            fen_string += "/"
+        # Active Colour
+        fen_string += " " + self.turn[0]
+        # Castling rights
+        fen_string += " " + ("".join(castling_rights) if len(castling_rights) > 0 else "-")
+        # En passant target square
+        fen_string += " " + (en_passant_target if en_passant_target is not None else "-")
+        # Halfmove clock
+        fen_string += " " + str(halfmove_clock)
+        # Fullmove number
+        fen_string += " " + str(fullmove_number)
+        return fen_string
     
     def log_move(self, piece:Piece, move:BoardLocation, takes_piece:Piece = None): # Function made by kingsley
         self.moves_stack.append(Move(piece, piece.square, move, takes_piece))
@@ -579,3 +635,45 @@ class ChessBoard:
                     for i in range(len(piece.legal_moves)):
                         text = font.render(f"{i + 1}: {piece.legal_moves[i].move}", True, RED)
                         screen.blit(text, (10, 110 + i * 15))
+
+def initialize_classic_game(x, y, size = BOARD_SIZE, starting_configuration = BOARD_CONFIG):
+    chessboard = ChessBoard(
+        x=x,
+        y=y,
+        size=size,
+        starting_configuration=starting_configuration,
+        turn="white",
+        pieces={
+            "p": {
+                "pattern": ClassicPiecesMovement.pawn_movement,
+                "sprite": None,
+                "worth": 1,
+            },
+            "r": {
+                "pattern": ClassicPiecesMovement.rook_movement,
+                "sprite": None,
+                "worth": 5,
+            },
+            "n": {
+                "pattern": ClassicPiecesMovement.knight_movement,
+                "sprite": None,
+                "worth": 3,
+            },
+            "b": {
+                "pattern": ClassicPiecesMovement.bishop_movement,
+                "sprite": None,
+                "worth": 3,
+            },
+            "q": {
+                "pattern": ClassicPiecesMovement.queen_movement,
+                "sprite": None,
+                "worth": 9,
+            },
+            "k": {
+                "pattern": ClassicPiecesMovement.king_movement,
+                "sprite": None,
+                "worth": 0,
+            },
+        },
+    )
+    return chessboard
