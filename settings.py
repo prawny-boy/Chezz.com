@@ -6,7 +6,6 @@ import json
 import sys
 from pathlib import Path
 
-
 class Settings:
     def __init__(self, settings_path: str = "settings.json"):
         self.path = Path(settings_path)
@@ -26,6 +25,5 @@ class Settings:
 
     def __setitem__(self, key, value):
         self.data[key] = value
-
 
 settings = Settings()

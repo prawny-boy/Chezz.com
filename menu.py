@@ -1,7 +1,6 @@
 """
 The starting point of the application which opens up main and option menus.
 """
-
 import pygame as _pygame
 import sys
 from gui import Button, Slider
@@ -21,7 +20,6 @@ _pygame.display.set_caption("Chezz.com")
 icon = _pygame.image.load("Assets/Sprites/Icon.png")
 _pygame.display.set_icon(icon)
 clock = _pygame.time.Clock()
-
 
 class OptionMenu:
     def __init__(self, screen: _pygame.Surface):

@@ -1,10 +1,8 @@
 """
 Implements the gui elements of pygame such as button and slider
 """
-
 import pygame as _pygame
 from typing import Optional, Tuple, List
-
 
 class Button:
     def __init__(
