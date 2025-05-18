@@ -1,10 +1,8 @@
 """
 Implements the gui elements of pygame such as button and slider
 """
-
 import pygame as _pygame
-from typing import Optional, Tuple, List
-
+from typing import Optional, Tuple
 
 class Button:
     def __init__(
@@ -18,20 +16,6 @@ class Button:
         text_color: Tuple[int, int, int],
         font: Optional[_pygame.font.Font] = None,
     ):
-        """
-        Initializes a button with position, size, text, colors, and font.
-
-        Args:
-            x (int): The x-coordinate of the button's top-left corner.
-            y (int): The y-coordinate of the button's top-left corner.
-            width (int): The width of the button.
-            height (int): The height of the button.
-            text (str): The text to display on the button.
-            color (Tuple[int, int, int]): The button's background color as an RGB tuple.
-            text_color (Tuple[int, int, int]): The text color as an RGB tuple.
-            font (Optional[_pygame.font.Font]): An optional font object for the button's text.
-                If None, the default font with size 36 is used.
-        """
         self.rect: _pygame.Rect = _pygame.Rect(x, y, width, height)
         self.text: str = text
         self.color: Tuple[int, int, int] = color
@@ -49,27 +33,11 @@ class Button:
         )
 
     def draw(self, surface: _pygame.Surface) -> None:
-        """
-        Draws the button on the given surface.
-
-        Args:
-            surface (_pygame.Surface): The Pygame surface on which to draw the button.
-        """
         _pygame.draw.rect(surface, self.color, self.rect)
         surface.blit(self.text_surface, self.text_rect)
 
     def is_hovered(self, pos: Tuple[int, int]) -> bool:
-        """
-        Checks if the mouse is hovering over the button.
-
-        Args:
-            pos (Tuple[int, int]): A tuple representing the mouse position (x, y).
-
-        Returns:
-            bool: True if the mouse is over the button, False otherwise.
-        """
         return self.rect.collidepoint(pos)
-
 
 class Slider:
     def __init__(
@@ -184,58 +152,3 @@ class Slider:
             self.x <= pos[0] <= self.x + self.width
             and self.y - self.height // 2 <= pos[1] <= self.y + self.height // 2
         )
-
-
-def splash_screen(
-    icons_to_show: list[_pygame.Surface],
-    screen: _pygame.Surface,
-    screen_width: int,
-    screen_height: int,
-    framerate: int,
-    clock: _pygame.time.Clock,
-):
-    """
-    Shows the logo of the game and the company.
-    """
-    alpha = 0
-    dir = "+"
-    icon_idx = 0
-    for icon in icons_to_show:
-        icons_to_show[icons_to_show.index(icon)] = _pygame.transform.scale(
-            icon, (200, 200)
-        )
-    icon = icons_to_show[icon_idx]
-    while True:
-        for event in _pygame.event.get():
-            if event.type == _pygame.QUIT:
-                _pygame.quit()
-                exit()
-            if event.type == _pygame.MOUSEBUTTONDOWN:
-                dir = "-"
-
-        if dir == "+":
-            alpha += 2
-            if alpha == 300:
-                dir = "-"
-        else:
-            alpha -= 2
-            if alpha == 0:
-                icon_idx += 1
-                try:
-                    icon = icons_to_show[icon_idx]
-                except IndexError:
-                    screen.fill((0, 0, 0))
-                    return
-                dir = "+"
-
-        screen.fill((0, 0, 0))
-        icon.set_alpha(alpha)
-        screen.blit(
-            icon,
-            (
-                screen_width / 2 - icon.get_width() / 2,
-                screen_height / 2 - icon.get_height() / 2,
-            ),
-        )
-        _pygame.display.flip()
-        clock.tick(framerate)

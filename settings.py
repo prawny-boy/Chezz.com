@@ -1,11 +1,9 @@
 """
 Reading and writing settings of the game into the settings.json file
 """
-
 import json
 import sys
 from pathlib import Path
-
 
 class Settings:
     def __init__(self, settings_path: str = "settings.json"):
@@ -26,6 +24,5 @@ class Settings:
 
     def __setitem__(self, key, value):
         self.data[key] = value
-
 
 settings = Settings()
