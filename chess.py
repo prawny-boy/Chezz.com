@@ -29,8 +29,6 @@ BOARD_CONFIG = [
     ["r", "n", "b", "q", "k", "b", "n", "r"],
 ]
 
-PIECE_SCALING = settings["board"]["piece_scaling"]
-
 show_debug_info = True
 
 class BoardLocation:
@@ -218,7 +216,6 @@ class Piece:
     def try_get_automatic_sprite(self, name:str, colour:str):
         try:
             image = _pygame.image.load(f"Assets\\Sprites\\Theme{self.theme}\\{colour[0].lower()}_{name.lower()}.png")
-            _pygame.transform.scale(image, (PIECE_SCALING[name.lower()], PIECE_SCALING[name.lower()]))
             return image
         except FileNotFoundError:
             return self.create_placeholder_piece(BLACK if name.islower() else WHITE, name)
