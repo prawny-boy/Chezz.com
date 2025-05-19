@@ -42,7 +42,10 @@ if __name__ == "__main__":
     clock = _pygame.time.Clock()
 
     # Initialize the state manager
-    state_manager = StateManager(SplashState(None, screen, [company_logo, logo]))
+    state_manager = StateManager(
+        initial_state=SplashState(None, screen, [company_logo, logo]),
+        default_variables={"theme": 1}
+    )
     state_manager.state.manager = state_manager
 
     # Main Loop

@@ -24,9 +24,16 @@ class State:
     def draw(self):
         pass
 
+    def update_variable(self, key, value):
+        self.manager.variables[key] = value
+
+    def get_variable(self, key):
+        return self.manager.variables[key]
+
 class StateManager:
-    def __init__(self, initial_state:State):
+    def __init__(self, initial_state:State, default_variables:dict = {}):
         self.state = initial_state
+        self.variables = default_variables
 
     def set_state(self, new_state):
         self.state = new_state
@@ -108,21 +115,33 @@ class OptionsState(State):
     
         self.difficulty_slider = Slider(self.center_x - 200, self.center_y - 100, 400, 50, 0, 2, 1, ["Easy", "Medium", "Hard"], (100, 100, 100), (255, 0, 0))
         self.back_button = Button(self.center_x - 100, self.center_y + 50, 200, 50, "Back", (0, 200, 0), (255, 255, 255))
+        self.theme1_button = Button(self.center_x - 100, self.center_y + 100, 200, 50, "Theme 1", (0, 200, 0), (255, 255, 255))
+        self.theme2_button = Button(self.center_x - 100, self.center_y + 150, 200, 50, "Theme 2", (0, 200, 0), (255, 255, 255))
+
+        self.theme = 1
 
     def handle_event(self, event):
         self.difficulty_slider.update(event)
-        if event.type == _pygame.MOUSEBUTTONDOWN and self.back_button.is_hovered(event.pos):
-            self.manager.set_state(MenuState(self.manager, self.screen))
+        if event.type == _pygame.MOUSEBUTTONDOWN:
+            if self.back_button.is_hovered(event.pos):
+                self.update_variable("theme", self.theme)
+                self.manager.set_state(MenuState(self.manager, self.screen))
+            if self.theme1_button.is_hovered(event.pos):
+                self.theme = 1
+            if self.theme2_button.is_hovered(event.pos):
+                self.theme = 2
 
     def draw(self):
         self.screen.fill(BLACK)
         self.difficulty_slider.draw(self.screen)
         self.back_button.draw(self.screen)
+        self.theme1_button.draw(self.screen)
+        self.theme2_button.draw(self.screen)
 
 class ClassicChessGameState(State):
     def __init__(self, manager, screen):
         super().__init__(manager, screen)
-        self.chessboard = initialize_classic_game(SCREEN_WIDTH / 2 - BOARD_SIZE / 2, SCREEN_HEIGHT / 2 - BOARD_SIZE / 2)
+        self.chessboard = initialize_classic_game(SCREEN_WIDTH / 2 - BOARD_SIZE / 2, SCREEN_HEIGHT / 2 - BOARD_SIZE / 2, theme=self.get_variable("theme"))
     
     def handle_event(self, event):
         if event.type == _pygame.MOUSEBUTTONDOWN:

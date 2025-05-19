@@ -29,8 +29,6 @@ BOARD_CONFIG = [
     ["r", "n", "b", "q", "k", "b", "n", "r"],
 ]
 
-PIECE_SCALING = settings["board"]["piece_scaling"]
-
 show_debug_info = True
 
 class BoardLocation:
@@ -194,11 +192,12 @@ class Piece:
                  colour:str,
                  direction:int = 1,
                  size:int = PIECE_SIZE,
-                 special:str = None):
+                 special:str = None,
+                 theme:int = 1):
         self.name = name
+        self.theme = theme
         if sprite is None:
             sprite = self.try_get_automatic_sprite(name, colour)
-            size = PIECE_SCALING[name.lower()]
         else:
             sprite = _pygame.transform.scale(sprite, (size, size))
         self.sprite = sprite
@@ -215,10 +214,9 @@ class Piece:
     
     def try_get_automatic_sprite(self, name:str, colour:str):
         try:
-            image = _pygame.image.load(f"Assets\\Sprites\\Theme1\\{colour[0].lower()}_{name.lower()}.png")
-            _pygame.transform.scale(image, (PIECE_SCALING[name.lower()], PIECE_SCALING[name.lower()]))
+            image = _pygame.image.load(f"Assets\\Sprites\\Theme{self.theme}\\{colour[0].lower()}_{name.lower()}.png")
             return image
-        except:
+        except FileNotFoundError:
             return self.create_placeholder_piece(BLACK if name.islower() else WHITE, name)
 
     def create_placeholder_piece(self, color:_pygame.Color, piece_char:str):
@@ -358,10 +356,12 @@ class ChessBoard:
                  pieces:dict[str, dict],
                  perspective:str = "white",
                  dark: _pygame.Color = BROWN,
-                 light: _pygame.Color = BEIGE): 
+                 light: _pygame.Color = BEIGE,
+                 theme: int = 1): 
         self.x = x
         self.y = y
         self.size = size / 8
+        self.theme = theme
         self.all_pieces:list[Piece] = self.make_pieces(pieces, starting_configuration)
         self.turn = turn
         self.dark = dark
@@ -417,7 +417,7 @@ class ChessBoard:
             for file in range(8):
                 piece_name = starting_configuration[rank][file]
                 if piece_name is not None:
-                    pieces.append(Piece(**pieces_dict[piece_name.lower()], name=piece_name, square=BoardLocation(rank, file), colour="white" if piece_name.isupper() else "black", direction=1 if piece_name.isupper() else -1))
+                    pieces.append(Piece(**pieces_dict[piece_name.lower()], name=piece_name, square=BoardLocation(rank, file), colour="white" if piece_name.isupper() else "black", direction=1 if piece_name.isupper() else -1, theme=self.theme))
                     print(f"Piece {piece_name} created at {rank}, {file}")
         
         return pieces
@@ -636,7 +636,7 @@ class ChessBoard:
                         text = font.render(f"{i + 1}: {piece.legal_moves[i].move}", True, RED)
                         screen.blit(text, (10, 110 + i * 15))
 
-def initialize_classic_game(x, y, size = BOARD_SIZE, starting_configuration = BOARD_CONFIG):
+def initialize_classic_game(x, y, size = BOARD_SIZE, starting_configuration = BOARD_CONFIG, theme = 1):
     chessboard = ChessBoard(
         x=x,
         y=y,
@@ -675,5 +675,6 @@ def initialize_classic_game(x, y, size = BOARD_SIZE, starting_configuration = BO
                 "worth": 0,
             },
         },
+        theme=theme
     )
     return chessboard
