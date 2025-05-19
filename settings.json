@@ -9,7 +9,7 @@
         "piece_size": 50,
         "move_highlight_radius": 7.5,
         "capture_highlight_radius": 30,
-        "capture_highlight_width": 3,
+        "capture_highlight_width": 3
     },
     "colors": {
         "slider": [

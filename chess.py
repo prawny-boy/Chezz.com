@@ -198,7 +198,6 @@ class Piece:
         self.theme = theme
         if sprite is None:
             sprite = self.try_get_automatic_sprite(name, colour)
-            size = PIECE_SCALING[name.lower()]
         else:
             sprite = _pygame.transform.scale(sprite, (size, size))
         self.sprite = sprite
