@@ -158,3 +158,29 @@ class ClassicChessGameState(State):
     def draw(self):
         self.screen.fill(BLACK)
         self.chessboard.draw(self.screen)
+        
+class ComputerScreenState(State):
+    def __init__(self, manager, screen):
+        super().__init__(manager, screen)
+        self.bot1button = Button(self.center_x - 100, self.center_y - 100, 200, 50, "Bot 1", (0, 255, 0), (255, 255, 255))
+        self.bot2button = Button(self.center_x - 100, self.center_y, 200, 50, "Bot 2", (0, 255, 0), (255, 255, 255))
+        self.bot3button = Button(self.center_x - 100, self.center_y + 100, 200, 50, "Bot 3", (0, 255, 0), (255, 255, 255))
+        self.back_button = Button(self.center_x - 100, self.center_y + 150, 200, 50, "Back", (255, 0, 0), (255, 255, 255))
+        
+    def handle_event(self, event):
+        if event.type == _pygame.MOUSEBUTTONDOWN:
+            if self.bot1button.is_hovered(event.pos):
+                self.manager.set_state(ClassicChessGameState(self.manager, self.screen))
+            if self.bot2button.is_hovered(event.pos):
+                self.manager.set_state(ClassicChessGameState(self.manager, self.screen))
+            if self.bot3button.is_hovered(event.pos):
+                self.manager.set_state(ClassicChessGameState(self.manager, self.screen))
+            if self.back_button.is_hovered(event.pos):
+                self.manager.set_state(MenuState(self.manager, self.screen))
+    
+    def draw(self):
+        self.screen.fill(BLACK)
+        self.bot1button.draw()
+        self.bot2button.draw()
+        self.bot3button.draw()
+        self.back_button.draw()

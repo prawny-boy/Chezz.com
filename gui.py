@@ -1,8 +1,20 @@
-"""
-Implements the gui elements of pygame such as button and slider
-"""
 import pygame as _pygame
 from typing import Optional, Tuple
+
+centered_rect = lambda x, y, width, height: _pygame.Rect(x - width // 2, y - height // 2, width, height) 
+
+class Text:
+    def __init__(self, text, x, y, font_filepath, font_size, colour):
+        self.text = text
+        self.x = x
+        self.y = y
+        self.font = _pygame.font.Font(font_filepath, font_size)
+        self.colour = colour
+
+    def draw(self, surface):
+        text_surface = self.font.render(self.text, True, self.colour)
+        text_rect = text_surface.get_rect(center=(self.x, self.y))
+        surface.blit(text_surface, text_rect)
 
 class Button:
     def __init__(
@@ -13,12 +25,14 @@ class Button:
         height: int,
         text: str,
         color: Tuple[int, int, int],
+        hover_color: Tuple[int, int, int], # New attribute for hover color
         text_color: Tuple[int, int, int],
         font: Optional[_pygame.font.Font] = None,
     ):
-        self.rect: _pygame.Rect = _pygame.Rect(x, y, width, height)
+        self.rect: _pygame.Rect = _pygame.Rect(x - width // 2, y - height // 2, width, height)
         self.text: str = text
         self.color: Tuple[int, int, int] = color
+        self.hover_color: Tuple[int, int, int] = hover_color # Store the hover color
         self.text_color: Tuple[int, int, int] = text_color
 
         # Use default font if none is provided
@@ -32,8 +46,17 @@ class Button:
             center=self.rect.center
         )
 
-    def draw(self, surface: _pygame.Surface) -> None:
-        _pygame.draw.rect(surface, self.color, self.rect)
+    def draw(self, surface: _pygame.Surface, mouse_pos: Tuple[int, int]) -> None:
+        """
+        Draw the button on the surface.
+        Args:
+            surface (_pygame.Surface): The surface to draw the button on.
+            mouse_pos (Tuple[int, int]): The current position of the mouse cursor."""
+        current_color = self.color
+        if self.is_hovered(mouse_pos):
+            current_color = self.hover_color
+
+        _pygame.draw.rect(surface, current_color, self.rect)
         surface.blit(self.text_surface, self.text_rect)
 
     def is_hovered(self, pos: Tuple[int, int]) -> bool:
