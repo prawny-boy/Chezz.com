@@ -4,6 +4,7 @@ from settings import settings
 MOVE_HIGHLIGHT_RADIUS = settings["board"]["move_highlight_radius"]
 CAPTURE_HIGHLIGHT_RADIUS = settings["board"]["capture_highlight_radius"]
 CAPTURE_HIGHLIGHT_WIDTH = settings["board"]["capture_highlight_width"]
+PROMOTION_HIGHLIGHT_RADIUS = settings["board"]["promotion_highlight_radius"]
 PIECE_SIZE = settings["board"]["piece_size"]
 BOARD_SIZE = settings["board"]["size"]
 
@@ -17,6 +18,7 @@ BEIGE = _pygame.Color("#f0d9b5")
 HIGHLIGHT = _pygame.Color("#8877DD99")
 MOVE_HIGHLIGHT = _pygame.Color("#5fa14460")
 CAPTURE_HIGHLIGHT = _pygame.Color("#d42a2a60")
+PROMOTION_HIGHLIGHT = _pygame.Color("#fff7005f")
 
 BOARD_CONFIG = [
     ["R", "N", "B", "Q", "K", "B", "N", "R"],
@@ -307,6 +309,11 @@ class Piece:
                     if self.check_move_legality(double_move, opposite_pieces_locations, same_pieces_locations, False):
                         double_movement_legal_moves.append(double_move)
             self.legal_moves.extend(double_movement_legal_moves)
+        
+        # Promotion
+        if self.attributes["can_promotion"]:
+            for move in self.legal_moves:
+                if move.move.get_rank() == (7 if self.colour == "white" else 0): move.type = move.type + "-promotion"
 
     def move(self, new_square:BoardLocation):
         self.square_log.append(self.square) # log the previous square
@@ -318,9 +325,25 @@ class Piece:
             self.square = self.square_log.pop()
         print(f"Unmoved {self.name} to {self.square}")
     
+    def promote(self):
+        """
+        Promotes the piece to a queen.
+        This is a simple implementation, you can change it to promote to any piece.
+        """
+        self.name = "Q" if self.colour == "white" else "q"
+        self.sprite = self.try_get_automatic_sprite(self.name, self.colour)
+        self.pattern = ClassicPiecesMovement.queen_movement
+        self.attributes["can_promotion"] = False # Disable promotion after promoting
+        self.worth = self.try_get_default_worth(self.name) # Update the worth of the piece
+
     def draw_legal_moves(self, screen:_pygame.Surface, ranks_locations:list[int], files_locations:list[int]):
         for move in self.legal_moves:
-            if move.type == "normal" or move.type == "jump":
+            if "promotion" in move.type:
+                if "normal" in move.type or "jump" in move.type:
+                    _pygame.draw.circle(screen, PROMOTION_HIGHLIGHT, (ranks_locations[move.move.get_file()], files_locations[move.move.get_rank()]), PROMOTION_HIGHLIGHT_RADIUS)
+                elif "capture" in move.type:
+                    _pygame.draw.circle(screen, PROMOTION_HIGHLIGHT, (ranks_locations[move.move.get_file()], files_locations[move.move.get_rank()]), CAPTURE_HIGHLIGHT_RADIUS, CAPTURE_HIGHLIGHT_WIDTH)
+            elif "normal" in move.type or "jump" in move.type:
                 _pygame.draw.circle(screen, MOVE_HIGHLIGHT, (ranks_locations[move.move.get_file()], files_locations[move.move.get_rank()]), MOVE_HIGHLIGHT_RADIUS)
             elif "capture" in move.type:
                 _pygame.draw.circle(screen, CAPTURE_HIGHLIGHT, (ranks_locations[move.move.get_file()], files_locations[move.move.get_rank()]), CAPTURE_HIGHLIGHT_RADIUS, CAPTURE_HIGHLIGHT_WIDTH)
@@ -329,7 +352,6 @@ class Piece:
         self.sprite = _pygame.transform.scale(self.sprite, (self.size, self.size))
         screen.blit(self.sprite, (ranks_locations[self.square.get_file()] - self.size / 2, files_locations[self.square.get_rank()] - self.size / 2))
         if self.selected and turn == self.colour:
-            # _pygame.draw.circle(screen, HIGHLIGHT, (ranks_locations[self.square.get_file()], files_locations[self.square.get_rank()]), MOVE_HIGHLIGHT_RADIUS)
             self.draw_legal_moves(screen, ranks_locations, files_locations)
 
 class Move:
@@ -548,10 +570,14 @@ class ChessBoard:
                 return False
             for legal_move in piece.legal_moves:
                 if legal_move.move == move:
-                    taken_piece = self.get_piece_at_location(move)
-                    if taken_piece:
-                        self.all_pieces.remove(taken_piece)
-                    self.log_move(piece, move, taken_piece) # Log move
+                    taken_piece = None
+                    if "capture" in legal_move.type:
+                        taken_piece = self.get_piece_at_location(move)
+                        if taken_piece:
+                            self.all_pieces.remove(taken_piece)
+                    if "promotion" in legal_move.type:
+                        piece.promote()
+                    self.log_move(piece, move, taken_piece)
                     piece.move(move) # Move Piece
                     self.turn = "black" if self.turn == "white" else "white" # switch turn
                     print(f"Moved {piece.name} from {piece.square_log[-1]} to {move}")
@@ -664,7 +690,7 @@ class ChessBoard:
                     text = font.render(f"Legal:", True, RED)
                     screen.blit(text, (10, 95))
                     for i in range(len(piece.legal_moves)):
-                        text = font.render(f"{i + 1}: {piece.legal_moves[i].move}", True, RED)
+                        text = font.render(f"{i + 1}: {piece.legal_moves[i].move}, {piece.legal_moves[i].type}", True, RED)
                         screen.blit(text, (10, 110 + i * 15))
 
 def initialize_classic_game(x, y, size = BOARD_SIZE, starting_configuration = BOARD_CONFIG, theme = 1):
@@ -677,7 +703,7 @@ def initialize_classic_game(x, y, size = BOARD_SIZE, starting_configuration = BO
         pieces={
             "p": {
                 "pattern": ClassicPiecesMovement.pawn_movement,
-                "attributes": {"can_double_move": True, "can_en_passant": True}
+                "attributes": {"can_double_move": True, "can_en_passant": True, "can_promotion": True},
             },
             "r": {"pattern": ClassicPiecesMovement.rook_movement},
             "n": {"pattern": ClassicPiecesMovement.knight_movement},
