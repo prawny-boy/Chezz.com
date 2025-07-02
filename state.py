@@ -113,7 +113,7 @@ class OptionsState(State):
         self.center_x = self.screen.get_width() / 2
         self.center_y = self.screen.get_height() / 2
     
-        self.difficulty_slider = Slider(self.center_x - 200, self.center_y - 100, 400, 50, 0, 2, 1, ["Easy", "Medium", "Hard"], (100, 100, 100), (255, 0, 0))
+        self.difficulty_slider = Slider(self.center_x - 200, self.center_y - 100, 400, 10, 0, 2, 1, ["Easy", "Medium", "Hard"], (100, 100, 100), (255, 0, 0))
         self.back_button = Button(self.center_x - 100, self.center_y + 50, 200, 50, "Back", (0, 200, 0), (255, 255, 255))
         self.theme1_button = Button(self.center_x - 100, self.center_y + 100, 200, 50, "Theme 1", (0, 200, 0), (255, 255, 255))
         self.theme2_button = Button(self.center_x - 100, self.center_y + 150, 200, 50, "Theme 2", (0, 200, 0), (255, 255, 255))
