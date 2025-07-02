@@ -22,6 +22,14 @@ PROMOTION_HIGHLIGHT = _pygame.Color("#fff7005f")
 
 CAPTURE_SOUND = _pygame.mixer.Sound("Assets/Sounds/capture.wav")
 MOVE_SOUND = _pygame.mixer.Sound("Assets/Sounds/move.wav")
+CASTLE_SOUND = _pygame.mixer.Sound("Assets/Sounds/castle.wav")
+CHECK_SOUND = _pygame.mixer.Sound("Assets/Sounds/check.wav")
+PROMOTE_SOUND = _pygame.mixer.Sound("Assets/Sounds/promote.wav")
+GAME_START_SOUND = _pygame.mixer.Sound("Assets/Sounds/game-start.wav")
+GAME_END_SOUND = _pygame.mixer.Sound("Assets/Sounds/game-end.wav")
+TEN_SECONDS_SOUND = _pygame.mixer.Sound("Assets/Sounds/tenseconds.wav")
+NOTIFY_SOUND = _pygame.mixer.Sound("Assets/Sounds/notify.wav")
+ILLEGAL_SOUND = _pygame.mixer.Sound("Assets/Sounds/illegal.wav")
 
 BOARD_CONFIG = [
     ["R", "N", "B", "Q", "K", "B", "N", "R"],
@@ -414,7 +422,8 @@ class ChessBoard:
                  light: _pygame.Color = BEIGE,
                  theme: int = 1,
                  move_sound: _pygame.mixer.Sound = MOVE_SOUND,
-                 capture_sound: _pygame.mixer.Sound = CAPTURE_SOUND): 
+                 capture_sound: _pygame.mixer.Sound = CAPTURE_SOUND,
+                 promotion_sound: _pygame.mixer.Sound = PROMOTE_SOUND): 
         self.x = x
         self.y = y
         self.size = size / 8
@@ -425,6 +434,7 @@ class ChessBoard:
         self.theme = theme
         self.move_sound = move_sound
         self.capture_sound = capture_sound
+        self.promotion_sound = promotion_sound
         self.perspective = perspective
         self.ranks_locations, self.files_locations = self.calculate_positions()
         self.selected_square = None
@@ -583,7 +593,9 @@ class ChessBoard:
                             self.all_pieces.remove(taken_piece)
                     if "promotion" in legal_move.type:
                         piece.promote()
-                    if "capture" in legal_move.type:
+                    if "promotion" in legal_move.type:
+                        self.promotion_sound.play()
+                    elif "capture" in legal_move.type:
                         self.capture_sound.play()
                     else:
                         self.move_sound.play()
@@ -703,7 +715,8 @@ class ChessBoard:
                         text = font.render(f"{i + 1}: {piece.legal_moves[i].move}, {piece.legal_moves[i].type}", True, RED)
                         screen.blit(text, (10, 110 + i * 15))
 
-def initialize_classic_game(x, y, size = BOARD_SIZE, starting_configuration = BOARD_CONFIG, theme = 1):
+def initialize_classic_game(x, y, size = BOARD_SIZE, starting_configuration = BOARD_CONFIG, theme = 1, play_start_sound = GAME_START_SOUND):
+    play_start_sound.play()
     chessboard = ChessBoard(
         x=x,
         y=y,
