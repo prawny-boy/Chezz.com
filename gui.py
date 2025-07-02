@@ -40,6 +40,8 @@ class Button(_pygame.sprite.Sprite):
         self.accent_value = accent_value
     
     def is_hovered(self, mouse_pos) -> bool:
+        if self.disabled:
+            return False
         button_rect = _pygame.rect.Rect(self.coordinates, self.size)
         if button_rect.collidepoint(mouse_pos):
             return True
