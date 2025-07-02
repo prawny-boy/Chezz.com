@@ -222,7 +222,6 @@ class Piece:
         self.size = size
         self.attributes = PIECE_DEFAULT_ATTRIBUTES.copy()
         if attributes: self.attributes.update(attributes) # this changes values of attributes if they are provided
-        print(f"Piece {self.name} created at {self.square} with attributes {self.attributes}, and worth {self.worth}")
         self.selected = False
         self.square_log:list[BoardLocation] = []
     
@@ -343,10 +342,10 @@ class Piece:
                     _pygame.draw.circle(screen, PROMOTION_HIGHLIGHT, (ranks_locations[move.move.get_file()], files_locations[move.move.get_rank()]), PROMOTION_HIGHLIGHT_RADIUS)
                 elif "capture" in move.type:
                     _pygame.draw.circle(screen, PROMOTION_HIGHLIGHT, (ranks_locations[move.move.get_file()], files_locations[move.move.get_rank()]), CAPTURE_HIGHLIGHT_RADIUS, CAPTURE_HIGHLIGHT_WIDTH)
-            elif "normal" in move.type or "jump" in move.type:
-                _pygame.draw.circle(screen, MOVE_HIGHLIGHT, (ranks_locations[move.move.get_file()], files_locations[move.move.get_rank()]), MOVE_HIGHLIGHT_RADIUS)
             elif "capture" in move.type:
                 _pygame.draw.circle(screen, CAPTURE_HIGHLIGHT, (ranks_locations[move.move.get_file()], files_locations[move.move.get_rank()]), CAPTURE_HIGHLIGHT_RADIUS, CAPTURE_HIGHLIGHT_WIDTH)
+            elif "normal" in move.type or "jump" in move.type:
+                _pygame.draw.circle(screen, MOVE_HIGHLIGHT, (ranks_locations[move.move.get_file()], files_locations[move.move.get_rank()]), MOVE_HIGHLIGHT_RADIUS)
     
     def draw(self, screen:_pygame.Surface, ranks_locations:list[int], files_locations:list[int], turn:str):
         self.sprite = _pygame.transform.scale(self.sprite, (self.size, self.size))
@@ -471,7 +470,6 @@ class ChessBoard:
                 piece_name = starting_configuration[rank][file]
                 if piece_name is not None:
                     pieces.append(Piece(**pieces_dict[piece_name.lower()], name=piece_name, square=BoardLocation(rank, file), colour="white" if piece_name.isupper() else "black", direction=1 if piece_name.isupper() else -1, theme=self.theme))
-                    print(f"Piece {piece_name} created at {rank}, {file}")
         
         return pieces
     
