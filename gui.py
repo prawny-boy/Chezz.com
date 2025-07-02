@@ -2,8 +2,7 @@
 Implements the gui elements of pygame such as button and slider
 """
 import pygame as _pygame
-from typing import Optional, Tuple
-    
+
 class Button(_pygame.sprite.Sprite):
     def __init__(
         self,
@@ -169,3 +168,4 @@ class Slider:
         dx = pos[0] - handle_center[0]
         dy = pos[1] - handle_center[1]
         return dx ** 2 + dy ** 2 <= handle_radius ** 2
+    

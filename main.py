@@ -1,17 +1,12 @@
 import pygame as _pygame
 
-from settings import settings
-from state import StateManager, SplashState
-
-# Initalizations
+# Pygame Initalizations
 _pygame.init()
 _pygame.font.init()
 _pygame.mixer.init()
 
-# ASSETS
-# Sounds
-# click_sound = _pygame.mixer.Sound("Assets/Sounds/click.wav")
-# move_sound = _pygame.mixer.Sound("Assets/Sounds/move.wav")
+from settings import settings
+from state import StateManager, SplashState
 
 # Sprites
 logo = _pygame.image.load("Assets/Sprites/Logo.png")

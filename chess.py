@@ -20,6 +20,9 @@ MOVE_HIGHLIGHT = _pygame.Color("#5fa14460")
 CAPTURE_HIGHLIGHT = _pygame.Color("#d42a2a60")
 PROMOTION_HIGHLIGHT = _pygame.Color("#fff7005f")
 
+CAPTURE_SOUND = _pygame.mixer.Sound("Assets/Sounds/capture.wav")
+MOVE_SOUND = _pygame.mixer.Sound("Assets/Sounds/move.wav")
+
 BOARD_CONFIG = [
     ["R", "N", "B", "Q", "K", "B", "N", "R"],
     ["P", "P", "P", "P", "P", "P", "P", "P"],
@@ -409,15 +412,19 @@ class ChessBoard:
                  perspective:str = "white",
                  dark: _pygame.Color = BROWN,
                  light: _pygame.Color = BEIGE,
-                 theme: int = 1): 
+                 theme: int = 1,
+                 move_sound: _pygame.mixer.Sound = MOVE_SOUND,
+                 capture_sound: _pygame.mixer.Sound = CAPTURE_SOUND): 
         self.x = x
         self.y = y
         self.size = size / 8
-        self.theme = theme
-        self.all_pieces:list[Piece] = self.make_pieces(pieces, starting_configuration)
+        self.all_pieces:list[Piece] = self.make_pieces(pieces, starting_configuration, theme)
         self.turn = turn
         self.dark = dark
         self.light = light
+        self.theme = theme
+        self.move_sound = move_sound
+        self.capture_sound = capture_sound
         self.perspective = perspective
         self.ranks_locations, self.files_locations = self.calculate_positions()
         self.selected_square = None
@@ -459,7 +466,8 @@ class ChessBoard:
         print(ranks, files)
         return ranks, files
 
-    def make_pieces(self, pieces_dict:dict[str, dict], starting_configuration:list[list[str]]):
+    @staticmethod
+    def make_pieces(pieces_dict:dict[str, dict], starting_configuration:list[list[str]], theme:int):
         for piece_name in pieces_dict.keys():
             if not piece_name.lower() == piece_name:
                 pieces_dict[piece_name.lower()] = pieces_dict.pop(piece_name) # Change the key to lowercase
@@ -469,7 +477,7 @@ class ChessBoard:
             for file in range(8):
                 piece_name = starting_configuration[rank][file]
                 if piece_name is not None:
-                    pieces.append(Piece(**pieces_dict[piece_name.lower()], name=piece_name, square=BoardLocation(rank, file), colour="white" if piece_name.isupper() else "black", direction=1 if piece_name.isupper() else -1, theme=self.theme))
+                    pieces.append(Piece(**pieces_dict[piece_name.lower()], name=piece_name, square=BoardLocation(rank, file), colour="white" if piece_name.isupper() else "black", direction=1 if piece_name.isupper() else -1, theme=theme))
         
         return pieces
     
@@ -575,6 +583,10 @@ class ChessBoard:
                             self.all_pieces.remove(taken_piece)
                     if "promotion" in legal_move.type:
                         piece.promote()
+                    if "capture" in legal_move.type:
+                        self.capture_sound.play()
+                    else:
+                        self.move_sound.play()
                     self.log_move(piece, move, taken_piece)
                     piece.move(move) # Move Piece
                     self.turn = "black" if self.turn == "white" else "white" # switch turn
