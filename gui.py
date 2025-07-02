@@ -3,41 +3,78 @@ Implements the gui elements of pygame such as button and slider
 """
 import pygame as _pygame
 from typing import Optional, Tuple
-
-class Button:
+    
+class Button(_pygame.sprite.Sprite):
     def __init__(
         self,
-        x: int,
-        y: int,
-        width: int,
-        height: int,
-        text: str,
-        color: Tuple[int, int, int],
-        text_color: Tuple[int, int, int],
-        font: Optional[_pygame.font.Font] = None,
+        x:int,
+        y:int, 
+        width:int, 
+        height:int,
+        text:str,
+        colour:tuple, 
+        text_colour:tuple,
+        text_font:_pygame.font.Font = None,
+        border_colour:tuple = (0, 0, 0), # this is the colour of the border
+        disabled:bool = False,
+        border_width:int = 5, # this is thickness of the border
+        border_radius:int = -1, # this is curving of edges
+        accent_type:str = "size", # 3 modes, colour, size and opacity
+        accent_value:tuple|int = (1.2, 1.2) # this is the value of the accent, it can be a rgb value, size added (int) or the opacity of accented (int)
     ):
-        self.rect: _pygame.Rect = _pygame.Rect(x, y, width, height)
-        self.text: str = text
-        self.color: Tuple[int, int, int] = color
-        self.text_color: Tuple[int, int, int] = text_color
+        super().__init__()
+        offset = (width / 2, height / 2)
+        self.coordinates = (x - offset[0], y - offset[1])
+        self.size = (width, height)
+        self.colour = colour
+        self.text = text
+        self.disabled = disabled
+        self.text_colour = text_colour
+        if text_font is None:
+            text_font = _pygame.font.Font(None, 36)
+        self.text_font = text_font
+        self.border_colour = border_colour
+        self.border_width = border_width
+        self.border_radius = border_radius
+        self.accent_type = accent_type
+        self.accent_value = accent_value
+    
+    def is_hovered(self, mouse_pos) -> bool:
+        button_rect = _pygame.rect.Rect(self.coordinates, self.size)
+        if button_rect.collidepoint(mouse_pos):
+            return True
+        else:
+            return False
 
-        # Use default font if none is provided
-        if font is None:
-            font = _pygame.font.Font(None, 36)
-
-        self.text_surface: _pygame.Surface = font.render(
-            self.text, True, self.text_color
-        )
-        self.text_rect: _pygame.Rect = self.text_surface.get_rect(
-            center=self.rect.center
-        )
-
-    def draw(self, surface: _pygame.Surface) -> None:
-        _pygame.draw.rect(surface, self.color, self.rect)
-        surface.blit(self.text_surface, self.text_rect)
-
-    def is_hovered(self, pos: Tuple[int, int]) -> bool:
-        return self.rect.collidepoint(pos)
+    def draw(self, screen: _pygame.Surface):
+        mouse_pos = _pygame.mouse.get_pos()
+        hover = self.is_hovered(mouse_pos)
+        if self.disabled:
+            hover = False
+        if self.accent_type == "size" and hover:
+            size = (self.size[0] * self.accent_value[0], self.size[1] * self.accent_value[1])
+        else:
+            size = self.size
+        self.image = _pygame.Surface(size)
+        if self.disabled:
+            self.image.set_alpha(128)
+        if self.accent_type == "size" and hover:
+            self.rect = self.image.get_rect(topleft=(self.coordinates[0]+(self.size[0]-size[0])/2, self.coordinates[1]+(self.size[1]-size[1])/2))
+        else:
+            self.rect = self.image.get_rect(topleft=self.coordinates)
+        if self.accent_type == "colour" and hover:
+            _pygame.draw.rect(self.image, self.accent_value, self.image.get_rect())
+        elif self.accent_type == "opacity" and hover:  # no work :(
+            _pygame.draw.rect(self.image, (self.colour[0], self.colour[1], self.colour[2], self.accent_value), self.image.get_rect())
+        else:
+            _pygame.draw.rect(self.image, self.colour, self.image.get_rect())
+        _pygame.draw.rect(self.image, self.border_colour, self.image.get_rect(), self.border_width, self.border_radius)
+        text_surface = self.text_font.render(self.text, True, self.text_colour)
+        offset = (self.image.get_width() / 2 - text_surface.get_width() / 2, self.image.get_height() / 2 - text_surface.get_height() / 2)
+        text_rect = text_surface.get_rect(topleft=offset)
+        self.image.blit(text_surface, text_rect)
+        # Blit the button onto the surface
+        screen.blit(self.image, self.rect)
 
 class Slider:
     def __init__(
@@ -49,9 +86,9 @@ class Slider:
         min_value,
         max_value,
         initial_value,
-        labels=None,
-        color=(100, 100, 100),
-        handle_color=(255, 0, 0),
+        labels,
+        color,
+        handle_color,
         handle_diameter=20,
         snap_to_values=True,
     ):
