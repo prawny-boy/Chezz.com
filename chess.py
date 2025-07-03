@@ -1,5 +1,6 @@
 import pygame as _pygame
 from settings import settings
+import tkinter as tk
 
 MOVE_HIGHLIGHT_RADIUS = settings["board"]["move_highlight_radius"]
 CAPTURE_HIGHLIGHT_RADIUS = settings["board"]["capture_highlight_radius"]
@@ -511,7 +512,7 @@ class ChessBoard:
                         position_list[rank][file] = piece.name
         return position_list
 
-    def get_fen(self):
+    def get_fen(self, copy_to_clipboard:bool=False) -> str:
         """
         Returns the FEN representation of the board
         Field 1: Pieces locations
@@ -525,7 +526,6 @@ class ChessBoard:
         To copy for chess.com do f'[FEN {fen_string}]'
         """
         position_list = self.get_position()[::-1]
-        print(position_list)
         fen_string = ""
         # get these things
         castling_rights = ["K", "Q", "k", "q"]
@@ -557,6 +557,14 @@ class ChessBoard:
         fen_string += " " + str(halfmove_clock)
         # Fullmove number
         fen_string += " " + str(fullmove_number)
+        if copy_to_clipboard:
+            r = tk.Tk()
+            r.withdraw()
+            r.clipboard_clear()
+            r.clipboard_append(fen_string)
+            r.update() # now it stays on the clipboard after the window is closed
+            r.destroy()
+            print(f"Copied FEN to clipboard: {fen_string}")
         return fen_string
     
     def log_move(self, piece:Piece, move:BoardLocation, takes_piece:Piece = None): # Function made by kingsley

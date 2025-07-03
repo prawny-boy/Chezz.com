@@ -149,12 +149,18 @@ class OptionsState(State):
 class ClassicChessGameState(State):
     def __init__(self, manager, screen):
         super().__init__(manager, screen)
-        self.chessboard = initialize_classic_game(SCREEN_WIDTH / 2 - BOARD_SIZE / 2, SCREEN_HEIGHT / 2 - BOARD_SIZE / 2, theme=self.get_variable("theme"))
+        self.chessboard = initialize_classic_game(SCREEN_WIDTH / 2 - BOARD_SIZE / 2 + 94, SCREEN_HEIGHT / 2 - BOARD_SIZE / 2, theme=self.get_variable("theme"))
+        self.export_fen_button = Button(120, 440, 160, 60, "Export FEN", (0, 0, 255), (255, 255, 255), border_colour=(0, 0, 155))
+        self.back_button = Button(120, 520, 160, 60, "Back", (255, 0, 0), (255, 255, 255), border_colour=(155, 0, 0))
     
     def handle_event(self, event):
         if event.type == _pygame.MOUSEBUTTONDOWN:
             mouse_pos = _pygame.mouse.get_pos()
             self.chessboard.handle_click(mouse_pos)
+            if self.back_button.is_hovered(mouse_pos):
+                self.manager.set_state(MenuState(self.manager, self.screen))
+            if self.export_fen_button.is_hovered(event.pos):
+                fen = self.chessboard.get_fen(copy_to_clipboard=True)
         if event.type == _pygame.KEYDOWN:
             if event.key == _pygame.K_LEFT:
                 self.chessboard.pop(1)
@@ -166,3 +172,5 @@ class ClassicChessGameState(State):
     def draw(self):
         self.screen.fill(BLACK)
         self.chessboard.draw(self.screen)
+        self.export_fen_button.draw(self.screen)
+        self.back_button.draw(self.screen)
