@@ -440,6 +440,8 @@ class ChessBoard:
         self.ranks_locations, self.files_locations = self.calculate_positions()
         self.selected_square = None
         self.moves_stack = []
+        self.en_passant_square = None # This is the square where the en-passant can be done
+        
     
     @staticmethod
     def simulate_move(current_all_pieces:list[Piece], piece:Piece, move_to:BoardLocation):
@@ -561,7 +563,7 @@ class ChessBoard:
             r = tk.Tk()
             r.withdraw()
             r.clipboard_clear()
-            r.clipboard_append(fen_string)
+            r.clipboard_append(f"[FEN {fen_string}]")
             r.update() # now it stays on the clipboard after the window is closed
             r.destroy()
             print(f"Copied FEN to clipboard: {fen_string}")
