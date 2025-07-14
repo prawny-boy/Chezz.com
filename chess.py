@@ -1,9 +1,11 @@
 import pygame as _pygame
 from settings import settings
+import tkinter as tk
 
 MOVE_HIGHLIGHT_RADIUS = settings["board"]["move_highlight_radius"]
 CAPTURE_HIGHLIGHT_RADIUS = settings["board"]["capture_highlight_radius"]
 CAPTURE_HIGHLIGHT_WIDTH = settings["board"]["capture_highlight_width"]
+PROMOTION_HIGHLIGHT_RADIUS = settings["board"]["promotion_highlight_radius"]
 PIECE_SIZE = settings["board"]["piece_size"]
 BOARD_SIZE = settings["board"]["size"]
 
@@ -17,6 +19,18 @@ BEIGE = _pygame.Color("#f0d9b5")
 HIGHLIGHT = _pygame.Color("#8877DD99")
 MOVE_HIGHLIGHT = _pygame.Color("#5fa14460")
 CAPTURE_HIGHLIGHT = _pygame.Color("#d42a2a60")
+PROMOTION_HIGHLIGHT = _pygame.Color("#fff7005f")
+
+CAPTURE_SOUND = _pygame.mixer.Sound("Assets/Sounds/capture.wav")
+MOVE_SOUND = _pygame.mixer.Sound("Assets/Sounds/move.wav")
+CASTLE_SOUND = _pygame.mixer.Sound("Assets/Sounds/castle.wav")
+CHECK_SOUND = _pygame.mixer.Sound("Assets/Sounds/check.wav")
+PROMOTE_SOUND = _pygame.mixer.Sound("Assets/Sounds/promote.wav")
+GAME_START_SOUND = _pygame.mixer.Sound("Assets/Sounds/game-start.wav")
+GAME_END_SOUND = _pygame.mixer.Sound("Assets/Sounds/game-end.wav")
+TEN_SECONDS_SOUND = _pygame.mixer.Sound("Assets/Sounds/tenseconds.wav")
+NOTIFY_SOUND = _pygame.mixer.Sound("Assets/Sounds/notify.wav")
+ILLEGAL_SOUND = _pygame.mixer.Sound("Assets/Sounds/illegal.wav")
 
 BOARD_CONFIG = [
     ["R", "N", "B", "Q", "K", "B", "N", "R"],
@@ -28,6 +42,14 @@ BOARD_CONFIG = [
     ["p", "p", "p", "p", "p", "p", "p", "p"],
     ["r", "n", "b", "q", "k", "b", "n", "r"],
 ]
+
+PIECE_DEFAULT_ATTRIBUTES = {"can_double_move": False, 
+                            "can_take_en_passant": False,
+                            "can_be_en_passant": False,
+                            "can_castle": False,
+                            "can_promotion": False,
+                            "checkable": False,
+                            "takeable": True}
 
 show_debug_info = True
 
@@ -140,7 +162,6 @@ class ClassicPiecesMovement:
 
     pawn_movement = MovementPattern("pawn", [
         Movement(BoardLocation(1, 0), [], "normal"),
-        Movement(BoardLocation(2, 0), [[BoardLocation(1, 0)]], "normal"),
         Movement(BoardLocation(1, 1), [], "capture"),
         Movement(BoardLocation(1, -1), [], "capture")
     ])
@@ -187,12 +208,12 @@ class Piece:
                  name:str,
                  pattern:MovementPattern, 
                  square:BoardLocation, 
-                 sprite:_pygame.Surface, 
-                 worth:int,
                  colour:str,
+                 sprite:_pygame.Surface = None, 
+                 worth:int = None,
                  direction:int = 1,
                  size:int = PIECE_SIZE,
-                 special:str = None,
+                 attributes:dict = None,
                  theme:int = 1):
         self.name = name
         self.theme = theme
@@ -202,6 +223,8 @@ class Piece:
             sprite = _pygame.transform.scale(sprite, (size, size))
         self.sprite = sprite
         self.square = square
+        if worth is None:
+            worth = self.try_get_default_worth(name)
         self.worth = worth
         self.colour = colour
         self.legal_moves:list[Movement] = []
@@ -209,8 +232,10 @@ class Piece:
         self.movement = pattern.update_to_position(square, direction)
         self.direction = direction # 1 for white, -1 for black
         self.size = size
-        self.special = special # "normal", "king" can move into check and castle,"jump" means ignore pieces in the way, "pawn" means can capture en passant, promotion and 2 squares first move
+        self.attributes = PIECE_DEFAULT_ATTRIBUTES.copy()
+        if attributes: self.attributes.update(attributes) # this changes values of attributes if they are provided
         self.selected = False
+        self.square_log:list[BoardLocation] = []
     
     def try_get_automatic_sprite(self, name:str, colour:str):
         try:
@@ -218,6 +243,21 @@ class Piece:
             return image
         except FileNotFoundError:
             return self.create_placeholder_piece(BLACK if name.islower() else WHITE, name)
+
+    def try_get_default_worth(self, name:str):
+        """
+        Returns the default worth of the piece based on its name.
+        If the piece is not found, returns 0.
+        """
+        default_worths = {
+            "p": 1,
+            "r": 5,
+            "n": 3,
+            "b": 3,
+            "q": 9,
+            "k": 0
+        }
+        return default_worths.get(name.lower(), 0)
 
     def create_placeholder_piece(self, color:_pygame.Color, piece_char:str):
         surf = _pygame.Surface((50, 50), _pygame.SRCALPHA)
@@ -229,76 +269,100 @@ class Piece:
         surf.blit(text, text_rect)
         return surf
 
+    @staticmethod
+    def check_move_legality(move:Movement, opposite_pieces_locations:list[BoardLocation], same_pieces_locations:list[BoardLocation], allow_takes:bool = True) -> bool:
+        """
+        Check if the move is legal for the piece.
+        This is a basic check and does not consider checks or checkmates.
+        """
+        legal = True
+        if not (0 <= move.move.get_rank() < 8 and 0 <= move.move.get_file() < 8):
+            legal = False
+        if move.type in ["normal", "capture"]: # check for pieces in the way, all 'need_to_be_clear' squares are not occupied
+            blocked = False
+            for piece_location in opposite_pieces_locations + same_pieces_locations:
+                for clear_squares in move.need_to_be_clear:
+                    for square in clear_squares:
+                        if piece_location == square:
+                            legal = False
+                            blocked = True
+                            break
+                    if blocked: break
+        if not allow_takes and "capture" in move.type:
+            legal = False
+        if move.type == "normal":
+            if move.move in opposite_pieces_locations + same_pieces_locations: legal = False
+        elif move.type == "capture":
+            if move.move not in opposite_pieces_locations: legal = False
+        elif move.type == "jump": # this is if the piece can jump over other pieces
+            if move.move in opposite_pieces_locations + same_pieces_locations: legal = False
+        elif move.type == "jump-capture": # this is if the piece can jump over other pieces and capture them
+            if move.move not in opposite_pieces_locations: legal = False
+        return legal
+
     def update(self, opposite_pieces_locations:list[BoardLocation], same_pieces_locations:list[BoardLocation]):
+        if not self.selected: return # if the piece is not selected, do not update its legal moves
         # Update the position of the piece for the movement pattern
         self.movement = self.pattern.update_to_position(self.square, self.direction)
         # Update the legal moves of a piece
         self.legal_moves = []
         for move in self.movement:
-            if move.move.get_rank() >= 0 and move.move.get_rank() < 8 and move.move.get_file() >= 0 and move.move.get_file() < 8: # check if the move is within the board limits
-                blocked = False
-                if move.type == "normal": # check if the move is not blocked by other pieces including its landing one
-                    for piece_location in opposite_pieces_locations + same_pieces_locations:
-                        for clear_space_group in move.need_to_be_clear:
-                            for cs in clear_space_group:
-                                if piece_location == cs:
-                                    blocked = True
-                                    break
-                            if blocked:
-                                break
-                            
-                        if piece_location == move.move:
-                            blocked = True
-                            break
-                    if not blocked:
-                        self.legal_moves.append(move)
-                elif move.type == "capture":
-                    is_clear = True
-                    # First check if all 'need_to_be_clear' squares are not occupied
-                    for clear_path in move.need_to_be_clear:
-                        for cs in clear_path:
-                            for piece_location in opposite_pieces_locations + same_pieces_locations:
-                                if piece_location == cs:
-                                    is_clear = False
-                                    break
-                            if not is_clear:
-                                break
-                        if not is_clear:
-                            break
-
-                    if is_clear:
-                        # Then check if the destination has an enemy piece
-                        for piece_location in opposite_pieces_locations:
-                            if piece_location == move.move:
-                                self.legal_moves.append(move)
-                                break
-                elif move.type == "jump": # this is if the piece can jump over other pieces
-                    for piece_location in opposite_pieces_locations + same_pieces_locations:
-                        if piece_location == move.move:
-                            break
-                    else:
-                        self.legal_moves.append(move)
-                elif move.type == "jump-capture": # this is if the piece can jump over other pieces and capture them
-                    for piece_location in opposite_pieces_locations:
-                        if piece_location == move.move:
-                            self.legal_moves.append(move)
-                            break
+            if self.check_move_legality(move, opposite_pieces_locations, same_pieces_locations):
+                self.legal_moves.append(move)
+        
+        # Double Moving
+        double_movement_legal_moves = []
+        if self.attributes["can_double_move"] and len(self.square_log) == 0:
+            for move in self.legal_moves:
+                if "capture" in move.type: continue # Do not double move if the piece can capture
+                double_movement = self.pattern.update_to_position(move.move, self.direction)
+                for double_move in double_movement:
+                    if self.check_move_legality(double_move, opposite_pieces_locations, same_pieces_locations, False):
+                        double_movement_legal_moves.append(double_move)
+            self.legal_moves.extend(double_movement_legal_moves)
+        
+        # Promotion
+        if self.attributes["can_promotion"]:
+            for move in self.legal_moves:
+                if move.move.get_rank() == (7 if self.colour == "white" else 0): move.type = move.type + "-promotion"
 
     def move(self, new_square:BoardLocation):
-        self.square = new_square
+        self.square_log.append(self.square) # log the previous square
+        self.square = new_square # Move the piece to the new square
     
+    def unmove(self): 
+        # Unmove the piece to the previous square
+        if self.square_log:
+            self.square = self.square_log.pop()
+        print(f"Unmoved {self.name} to {self.square}")
+    
+    def promote(self):
+        """
+        Promotes the piece to a queen.
+        This is a simple implementation, you can change it to promote to any piece.
+        """
+        self.name = "Q" if self.colour == "white" else "q"
+        self.sprite = self.try_get_automatic_sprite(self.name, self.colour)
+        self.pattern = ClassicPiecesMovement.queen_movement
+        self.attributes["can_promotion"] = False # Disable promotion after promoting
+        self.worth = self.try_get_default_worth(self.name) # Update the worth of the piece
+
     def draw_legal_moves(self, screen:_pygame.Surface, ranks_locations:list[int], files_locations:list[int]):
         for move in self.legal_moves:
-            if move.type == "normal" or move.type == "jump":
-                _pygame.draw.circle(screen, MOVE_HIGHLIGHT, (ranks_locations[move.move.get_file()], files_locations[move.move.get_rank()]), MOVE_HIGHLIGHT_RADIUS)
+            if "promotion" in move.type:
+                if "normal" in move.type or "jump" in move.type:
+                    _pygame.draw.circle(screen, PROMOTION_HIGHLIGHT, (ranks_locations[move.move.get_file()], files_locations[move.move.get_rank()]), PROMOTION_HIGHLIGHT_RADIUS)
+                elif "capture" in move.type:
+                    _pygame.draw.circle(screen, PROMOTION_HIGHLIGHT, (ranks_locations[move.move.get_file()], files_locations[move.move.get_rank()]), CAPTURE_HIGHLIGHT_RADIUS, CAPTURE_HIGHLIGHT_WIDTH)
             elif "capture" in move.type:
                 _pygame.draw.circle(screen, CAPTURE_HIGHLIGHT, (ranks_locations[move.move.get_file()], files_locations[move.move.get_rank()]), CAPTURE_HIGHLIGHT_RADIUS, CAPTURE_HIGHLIGHT_WIDTH)
+            elif "normal" in move.type or "jump" in move.type:
+                _pygame.draw.circle(screen, MOVE_HIGHLIGHT, (ranks_locations[move.move.get_file()], files_locations[move.move.get_rank()]), MOVE_HIGHLIGHT_RADIUS)
     
     def draw(self, screen:_pygame.Surface, ranks_locations:list[int], files_locations:list[int], turn:str):
         self.sprite = _pygame.transform.scale(self.sprite, (self.size, self.size))
         screen.blit(self.sprite, (ranks_locations[self.square.get_file()] - self.size / 2, files_locations[self.square.get_rank()] - self.size / 2))
         if self.selected and turn == self.colour:
-            # _pygame.draw.circle(screen, HIGHLIGHT, (ranks_locations[self.square.get_file()], files_locations[self.square.get_rank()]), MOVE_HIGHLIGHT_RADIUS)
             self.draw_legal_moves(screen, ranks_locations, files_locations)
 
 class Move:
@@ -357,19 +421,27 @@ class ChessBoard:
                  perspective:str = "white",
                  dark: _pygame.Color = BROWN,
                  light: _pygame.Color = BEIGE,
-                 theme: int = 1): 
+                 theme: int = 1,
+                 move_sound: _pygame.mixer.Sound = MOVE_SOUND,
+                 capture_sound: _pygame.mixer.Sound = CAPTURE_SOUND,
+                 promotion_sound: _pygame.mixer.Sound = PROMOTE_SOUND): 
         self.x = x
         self.y = y
         self.size = size / 8
-        self.theme = theme
-        self.all_pieces:list[Piece] = self.make_pieces(pieces, starting_configuration)
+        self.all_pieces:list[Piece] = self.make_pieces(pieces, starting_configuration, theme)
         self.turn = turn
         self.dark = dark
         self.light = light
+        self.theme = theme
+        self.move_sound = move_sound
+        self.capture_sound = capture_sound
+        self.promotion_sound = promotion_sound
         self.perspective = perspective
         self.ranks_locations, self.files_locations = self.calculate_positions()
         self.selected_square = None
         self.moves_stack = []
+        self.en_passant_square = None # This is the square where the en-passant can be done
+        
     
     @staticmethod
     def simulate_move(current_all_pieces:list[Piece], piece:Piece, move_to:BoardLocation):
@@ -407,7 +479,8 @@ class ChessBoard:
         print(ranks, files)
         return ranks, files
 
-    def make_pieces(self, pieces_dict:dict[str, dict], starting_configuration:list[list[str]]):
+    @staticmethod
+    def make_pieces(pieces_dict:dict[str, dict], starting_configuration:list[list[str]], theme:int):
         for piece_name in pieces_dict.keys():
             if not piece_name.lower() == piece_name:
                 pieces_dict[piece_name.lower()] = pieces_dict.pop(piece_name) # Change the key to lowercase
@@ -417,8 +490,7 @@ class ChessBoard:
             for file in range(8):
                 piece_name = starting_configuration[rank][file]
                 if piece_name is not None:
-                    pieces.append(Piece(**pieces_dict[piece_name.lower()], name=piece_name, square=BoardLocation(rank, file), colour="white" if piece_name.isupper() else "black", direction=1 if piece_name.isupper() else -1, theme=self.theme))
-                    print(f"Piece {piece_name} created at {rank}, {file}")
+                    pieces.append(Piece(**pieces_dict[piece_name.lower()], name=piece_name, square=BoardLocation(rank, file), colour="white" if piece_name.isupper() else "black", direction=1 if piece_name.isupper() else -1, theme=theme))
         
         return pieces
     
@@ -442,7 +514,7 @@ class ChessBoard:
                         position_list[rank][file] = piece.name
         return position_list
 
-    def get_fen(self):
+    def get_fen(self, copy_to_clipboard:bool=False) -> str:
         """
         Returns the FEN representation of the board
         Field 1: Pieces locations
@@ -456,7 +528,6 @@ class ChessBoard:
         To copy for chess.com do f'[FEN {fen_string}]'
         """
         position_list = self.get_position()[::-1]
-        print(position_list)
         fen_string = ""
         # get these things
         castling_rights = ["K", "Q", "k", "q"]
@@ -488,6 +559,14 @@ class ChessBoard:
         fen_string += " " + str(halfmove_clock)
         # Fullmove number
         fen_string += " " + str(fullmove_number)
+        if copy_to_clipboard:
+            r = tk.Tk()
+            r.withdraw()
+            r.clipboard_clear()
+            r.clipboard_append(f"[FEN {fen_string}]")
+            r.update() # now it stays on the clipboard after the window is closed
+            r.destroy()
+            print(f"Copied FEN to clipboard: {fen_string}")
         return fen_string
     
     def log_move(self, piece:Piece, move:BoardLocation, takes_piece:Piece = None): # Function made by kingsley
@@ -504,7 +583,7 @@ class ChessBoard:
             self.moves_stack = self.moves_stack[:-1] # Remove last move
             self.turn = "white" if self.turn == "black" else "black" # Switch turn back
             piece = self.get_piece_at_location(last_move.to_square)
-            piece.move(last_move.from_square)
+            piece.unmove()
             if last_move.captured_piece:
                 self.all_pieces.append(last_move.captured_piece)
             print(f"Moved {last_move.piece.name} piece back. Moves: {self.moves_stack}")
@@ -517,13 +596,23 @@ class ChessBoard:
                 return False
             for legal_move in piece.legal_moves:
                 if legal_move.move == move:
-                    taken_piece = self.get_piece_at_location(move)
-                    if taken_piece:
-                        self.all_pieces.remove(taken_piece)
-                    self.log_move(piece, move, taken_piece) # Log move
+                    taken_piece = None
+                    if "capture" in legal_move.type:
+                        taken_piece = self.get_piece_at_location(move)
+                        if taken_piece:
+                            self.all_pieces.remove(taken_piece)
+                    if "promotion" in legal_move.type:
+                        piece.promote()
+                    if "promotion" in legal_move.type:
+                        self.promotion_sound.play()
+                    elif "capture" in legal_move.type:
+                        self.capture_sound.play()
+                    else:
+                        self.move_sound.play()
+                    self.log_move(piece, move, taken_piece)
                     piece.move(move) # Move Piece
                     self.turn = "black" if self.turn == "white" else "white" # switch turn
-                    print(f"Moved {piece.name} from {piece.square} to {move}")
+                    print(f"Moved {piece.name} from {piece.square_log[-1]} to {move}")
                     return True
         print(f"Move {move} is not legal")
         return False
@@ -633,10 +722,11 @@ class ChessBoard:
                     text = font.render(f"Legal:", True, RED)
                     screen.blit(text, (10, 95))
                     for i in range(len(piece.legal_moves)):
-                        text = font.render(f"{i + 1}: {piece.legal_moves[i].move}", True, RED)
+                        text = font.render(f"{i + 1}: {piece.legal_moves[i].move}, {piece.legal_moves[i].type}", True, RED)
                         screen.blit(text, (10, 110 + i * 15))
 
-def initialize_classic_game(x, y, size = BOARD_SIZE, starting_configuration = BOARD_CONFIG, theme = 1):
+def initialize_classic_game(x, y, size = BOARD_SIZE, starting_configuration = BOARD_CONFIG, theme = 1, play_start_sound = GAME_START_SOUND):
+    play_start_sound.play()
     chessboard = ChessBoard(
         x=x,
         y=y,
@@ -646,34 +736,13 @@ def initialize_classic_game(x, y, size = BOARD_SIZE, starting_configuration = BO
         pieces={
             "p": {
                 "pattern": ClassicPiecesMovement.pawn_movement,
-                "sprite": None,
-                "worth": 1,
+                "attributes": {"can_double_move": True, "can_en_passant": True, "can_promotion": True},
             },
-            "r": {
-                "pattern": ClassicPiecesMovement.rook_movement,
-                "sprite": None,
-                "worth": 5,
-            },
-            "n": {
-                "pattern": ClassicPiecesMovement.knight_movement,
-                "sprite": None,
-                "worth": 3,
-            },
-            "b": {
-                "pattern": ClassicPiecesMovement.bishop_movement,
-                "sprite": None,
-                "worth": 3,
-            },
-            "q": {
-                "pattern": ClassicPiecesMovement.queen_movement,
-                "sprite": None,
-                "worth": 9,
-            },
-            "k": {
-                "pattern": ClassicPiecesMovement.king_movement,
-                "sprite": None,
-                "worth": 0,
-            },
+            "r": {"pattern": ClassicPiecesMovement.rook_movement},
+            "n": {"pattern": ClassicPiecesMovement.knight_movement},
+            "b": {"pattern": ClassicPiecesMovement.bishop_movement},
+            "q": {"pattern": ClassicPiecesMovement.queen_movement},
+            "k": {"pattern": ClassicPiecesMovement.king_movement},
         },
         theme=theme
     )

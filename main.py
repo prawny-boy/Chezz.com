@@ -1,17 +1,12 @@
 import pygame as _pygame
 
-from settings import settings
-from state import StateManager, SplashState
-
-# Initalizations
+# Pygame Initalizations
 _pygame.init()
 _pygame.font.init()
 _pygame.mixer.init()
 
-# ASSETS
-# Sounds
-# click_sound = _pygame.mixer.Sound("Assets/Sounds/click.wav")
-# move_sound = _pygame.mixer.Sound("Assets/Sounds/move.wav")
+from settings import settings
+from state import StateManager, SplashState
 
 # Sprites
 logo = _pygame.image.load("Assets/Sprites/Logo.png")
@@ -22,17 +17,6 @@ company_logo = _pygame.image.load("Assets/Sprites/Company.png")
 SCREEN_WIDTH = settings["screen"]["width"]
 SCREEN_HEIGHT = settings["screen"]["height"]
 FRAME_RATE = settings["screen"]["fps"]
-PIECE_SIZE = settings["board"]["piece_size"]
-BOARD_SIZE = settings["board"]["size"]
-WHITE = tuple(settings["colors"]["white"])
-BLACK = tuple(settings["colors"]["black"])
-RED = tuple(settings["colors"]["red"])
-GREEN = tuple(settings["colors"]["green"])
-BROWN = _pygame.Color("#b58863")
-BEIGE = _pygame.Color("#f0d9b5")
-HIGHLIGHT = _pygame.Color("#8877DD99")
-MOVE_HIGHLIGHT = _pygame.Color("#5fa14460")
-CAPTURE_HIGHLIGHT = _pygame.Color("#d42a2a5f")
 
 if __name__ == "__main__":
     # Initialize Pygame Screen
