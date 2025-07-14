@@ -114,10 +114,10 @@ class OptionsState(State):
         self.center_y = self.screen.get_height() / 2
     
         self.difficulty_slider = Slider(self.center_x - 200, self.center_y - 200, 400, 10, 0, 2, 1, ["Easy", "Medium", "Hard"], (100, 100, 100), (255, 0, 0))
-        self.back_button = Button(self.center_x, self.center_y + 150, 200, 50, "Back", (255, 0, 0), (255, 255, 255), border_colour=(155, 0, 0))
-        self.theme1_button = Button(self.center_x, self.center_y, 200, 50, "Theme 1", (0, 255, 0), (255, 255, 255), border_colour=(0, 155, 0))
-        self.theme2_button = Button(self.center_x, self.center_y + 75, 200, 50, "Theme 2", (0, 255, 0), (255, 255, 255), border_colour=(0, 155, 0))
-
+        self.back_button = Button(self.center_x, self.center_y + 225, 200, 50, "Back", (255, 0, 0), (255, 255, 255), border_colour=(155, 0, 0))
+        self.theme1_button = Button(self.center_x, self.center_y, 250, 50, "Default Theme", (0, 255, 0), (255, 255, 255), border_colour=(0, 155, 0))
+        self.theme2_button = Button(self.center_x, self.center_y + 75, 250, 50, "Movement Theme", (0, 255, 0), (255, 255, 255), border_colour=(0, 155, 0))
+        self.theme3_button = Button(self.center_x, self.center_y + 150, 250, 50, "Chess.com Theme", (0, 255, 0), (255, 255, 255), border_colour=(0, 155, 0))
         self.theme = 1
 
     def handle_event(self, event):
@@ -130,14 +130,22 @@ class OptionsState(State):
                 self.theme = 1
             if self.theme2_button.is_hovered(event.pos):
                 self.theme = 2
+            if self.theme3_button.is_hovered(event.pos):
+                self.theme = 3
     
     def update(self):
         if self.theme == 1:
             self.theme1_button.disabled = True
             self.theme2_button.disabled = False
+            self.theme3_button.disabled = False
         elif self.theme == 2:
             self.theme2_button.disabled = True
             self.theme1_button.disabled = False
+            self.theme3_button.disabled = False
+        elif self.theme == 3:
+            self.theme3_button.disabled = True
+            self.theme1_button.disabled = False
+            self.theme2_button.disabled = False
 
     def draw(self):
         self.screen.fill(BLACK)
@@ -145,6 +153,7 @@ class OptionsState(State):
         self.back_button.draw(self.screen)
         self.theme1_button.draw(self.screen)
         self.theme2_button.draw(self.screen)
+        self.theme3_button.draw(self.screen)
 
 class ClassicChessGameState(State):
     def __init__(self, manager, screen):
