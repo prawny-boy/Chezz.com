@@ -1,7 +1,19 @@
-"""
-Implements the gui elements of pygame such as button and slider
-"""
 import pygame as _pygame
+
+centered_rect = lambda x, y, width, height: _pygame.Rect(x - width // 2, y - height // 2, width, height) 
+
+class Text:
+    def __init__(self, text, x, y, font_filepath, font_size, colour):
+        self.text = text
+        self.x = x
+        self.y = y
+        self.font = _pygame.font.Font(font_filepath, font_size)
+        self.colour = colour
+
+    def draw(self, surface):
+        text_surface = self.font.render(self.text, True, self.colour)
+        text_rect = text_surface.get_rect(center=(self.x, self.y))
+        surface.blit(text_surface, text_rect)
 
 class Button(_pygame.sprite.Sprite):
     def __init__(
