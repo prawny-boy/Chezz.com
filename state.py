@@ -4,6 +4,7 @@ from sys import exit as _exit
 from gui import Button, Slider
 from settings import settings # still need to push these values into states stuff below
 from chess import initialize_classic_game
+from color_picker import ColorPicker
 
 BOARD_SIZE = settings["board"]["size"]
 SCREEN_WIDTH = settings["screen"]["width"]
@@ -89,6 +90,8 @@ class MenuState(State):
         self.new_game_button = Button(self.center_x, self.center_y - 100, 200, 50, "New Game", (0, 255, 0), (255, 255, 255), border_colour=(0, 155, 0))
         self.options_button = Button(self.center_x, self.center_y, 200, 50, "Options", (0, 0, 255), (255, 255, 255), border_colour=(0, 0, 155))
         self.quit_button = Button(self.center_x, self.center_y + 100, 200, 50, "Quit", (255, 0, 0), (255, 255, 255), border_colour=(155, 0, 0))
+        # --- ADD THIS ---
+        self.light_color_picker_button = Button(self.center_x, self.center_y + 200, 200, 50, "Color Picker", (255, 128, 0), (255, 255, 255), border_colour=(155, 80, 0))
 
     def handle_event(self, event):
         if event.type == _pygame.MOUSEBUTTONDOWN:
@@ -100,12 +103,18 @@ class MenuState(State):
             elif self.quit_button.is_hovered(pos):
                 _pygame.quit()
                 _exit()
+            # --- ADD THIS ---
+            elif self.light_color_picker_button.is_hovered(pos):
+                self.manager.set_state(ColorPickerState(self.manager, self.screen))
 
     def draw(self):
         self.screen.fill(BLACK)
         self.new_game_button.draw(self.screen)
         self.options_button.draw(self.screen)
         self.quit_button.draw(self.screen)
+        # --- ADD THIS ---
+        self.light_color_picker_button.draw(self.screen)
+
 
 class OptionsState(State):
     def __init__(self, manager, screen):
@@ -174,3 +183,66 @@ class ClassicChessGameState(State):
         self.chessboard.draw(self.screen)
         self.export_fen_button.draw(self.screen)
         self.back_button.draw(self.screen)
+        
+class ComputerScreenState(State):
+    def __init__(self, manager, screen):
+        super().__init__(manager, screen)
+        self.bot1button = Button(self.center_x - 100, self.center_y - 100, 200, 50, "Bot 1", (0, 255, 0), (255, 255, 255))
+        self.bot2button = Button(self.center_x - 100, self.center_y, 200, 50, "Bot 2", (0, 255, 0), (255, 255, 255))
+        self.bot3button = Button(self.center_x - 100, self.center_y + 100, 200, 50, "Bot 3", (0, 255, 0), (255, 255, 255))
+        self.back_button = Button(self.center_x - 100, self.center_y + 150, 200, 50, "Back", (255, 0, 0), (255, 255, 255))
+        
+    def handle_event(self, event):
+        if event.type == _pygame.MOUSEBUTTONDOWN:
+            if self.bot1button.is_hovered(event.pos):
+                self.manager.set_state(ClassicChessGameState(self.manager, self.screen))
+            if self.bot2button.is_hovered(event.pos):
+                self.manager.set_state(ClassicChessGameState(self.manager, self.screen))
+            if self.bot3button.is_hovered(event.pos):
+                self.manager.set_state(ClassicChessGameState(self.manager, self.screen))
+            if self.back_button.is_hovered(event.pos):
+                self.manager.set_state(MenuState(self.manager, self.screen))
+    
+    def draw(self):
+        self.screen.fill(BLACK)
+        self.bot1button.draw()
+        self.bot2button.draw()
+        self.bot3button.draw()
+        self.back_button.draw()
+        
+class ColorPickerState(State):
+    def __init__(self, manager, screen):
+        super().__init__(manager, screen)
+        self.screen = screen
+        self.light_color_picker = ColorPicker("Assets\\Sprites\\color_hex.png", coords=(150, 150))
+        self.dark_light_color_picker = ColorPicker("Assets\\Sprites\\color_hex.png", coords=(150, 450))
+
+    def handle_event(self, event):
+        if event.type == _pygame.MOUSEBUTTONDOWN:
+            if self.light_color_picker.is_hovered(event.pos):
+                color = self.light_color_picker.get_color_at_mouse(event.pos)
+                if color:
+                    self.light_color_picker.selected_color = color  # <-- update selected color
+            elif self.dark_light_color_picker.is_hovered(event.pos):
+                color2 = self.dark_light_color_picker.get_color_at_mouse(event.pos)
+                if color2:
+                    self.dark_light_color_picker.selected_color = color2  # <-- update selected color
+        if event.type == _pygame.KEYDOWN:
+            if event.key == _pygame.K_ESCAPE:
+                self.manager.set_state(MenuState(self.manager, self.screen))
+
+    def draw(self):
+        self.screen.fill(BLACK)
+        self.light_color_picker.draw(self.screen)
+        self.dark_light_color_picker.draw(self.screen)
+        square_size = 40
+        board_x = 400
+        board_y = 150
+        for i in range(8):
+            for j in range(8):
+                color = self.dark_light_color_picker.selected_color[:3] if (i + j) % 2 == 0 else self.light_color_picker.selected_color[:3]
+                _pygame.draw.rect(
+                    self.screen,
+                    color,
+                    (i * square_size + board_x, j * square_size + board_y, square_size, square_size)
+                )

@@ -240,8 +240,14 @@ class Piece:
     def try_get_automatic_sprite(self, name:str, colour:str):
         try:
             image = _pygame.image.load(f"Assets\\Sprites\\Theme{self.theme}\\{colour[0].lower()}_{name.lower()}.png")
+            with open(f'Assets\\Sprites\\Theme{self.theme}\\scaling.txt', 'r') as f:
+                for i in f.readlines():
+                    if name.lower() in i:
+                        scale = float(i.split(":")[1].strip())
+                        image = _pygame.transform.scale(image, (float(scale), float(scale)))
             return image
-        except FileNotFoundError:
+        except FileNotFoundError as error:
+            print(f'Error: {error}')
             return self.create_placeholder_piece(BLACK if name.islower() else WHITE, name)
 
     def try_get_default_worth(self, name:str):
@@ -325,6 +331,7 @@ class Piece:
         if self.attributes["can_promotion"]:
             for move in self.legal_moves:
                 if move.move.get_rank() == (7 if self.colour == "white" else 0): move.type = move.type + "-promotion"
+                
 
     def move(self, new_square:BoardLocation):
         self.square_log.append(self.square) # log the previous square
