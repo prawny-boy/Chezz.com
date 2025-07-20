@@ -1,6 +1,7 @@
 import pygame as _pygame
 from settings import settings
 import tkinter as tk
+from collections import defaultdict
 
 MOVE_HIGHLIGHT_RADIUS = settings["board"]["move_highlight_radius"]
 CAPTURE_HIGHLIGHT_RADIUS = settings["board"]["capture_highlight_radius"]
@@ -32,7 +33,7 @@ TEN_SECONDS_SOUND = _pygame.mixer.Sound("Assets/Sounds/tenseconds.wav")
 NOTIFY_SOUND = _pygame.mixer.Sound("Assets/Sounds/notify.wav")
 ILLEGAL_SOUND = _pygame.mixer.Sound("Assets/Sounds/illegal.wav")
 
-BOARD_CONFIG = [
+BOARD_NAME_CONFIG = [
     ["R", "N", "B", "Q", "K", "B", "N", "R"],
     ["P", "P", "P", "P", "P", "P", "P", "P"],
     [None, None, None, None, None, None, None, None],
@@ -41,7 +42,7 @@ BOARD_CONFIG = [
     [None, None, None, None, None, None, None, None],
     ["p", "p", "p", "p", "p", "p", "p", "p"],
     ["r", "n", "b", "q", "k", "b", "n", "r"],
-]
+] # Uppercase for white, lowercase for black
 
 PIECE_DEFAULT_ATTRIBUTES = {"can_double_move": False, 
                             "can_take_en_passant": False,
@@ -208,7 +209,7 @@ class Piece:
                  name:str,
                  pattern:MovementPattern, 
                  square:BoardLocation, 
-                 colour:str,
+                 colour:str, # "white" or "black"
                  sprite:_pygame.Surface = None, 
                  worth:int = None,
                  direction:int = 1,
@@ -416,8 +417,8 @@ class ChessBoard:
                  x:int, y:int, 
                  size: int, 
                  starting_configuration:list[list[str]],
-                 turn:str,
-                 pieces:dict[str, dict],
+                 included_pieces:dict[str, dict], # dict of piece name to attributes
+                 turn:str = "white",
                  perspective:str = "white",
                  dark: _pygame.Color = BROWN,
                  light: _pygame.Color = BEIGE,
@@ -425,93 +426,87 @@ class ChessBoard:
                  move_sound: _pygame.mixer.Sound = MOVE_SOUND,
                  capture_sound: _pygame.mixer.Sound = CAPTURE_SOUND,
                  promotion_sound: _pygame.mixer.Sound = PROMOTE_SOUND): 
-        self.x = x
-        self.y = y
-        self.size = size / 8
-        self.all_pieces:list[Piece] = self.make_pieces(pieces, starting_configuration, theme)
+        self.position:list[list[Piece]] = self.position_pieces(included_pieces, starting_configuration, theme) # Rows and columns of pieces
         self.turn = turn
         self.dark = dark
         self.light = light
-        self.theme = theme
+        self.size = size / 8
         self.move_sound = move_sound
         self.capture_sound = capture_sound
         self.promotion_sound = promotion_sound
         self.perspective = perspective
-        self.ranks_locations, self.files_locations = self.calculate_positions()
+        self.ranks_locations, self.files_locations = self.calculate_locations(x, y, self.size, perspective)
         self.selected_square = None
         self.moves_stack = []
-        self.en_passant_square = None # This is the square where the en-passant can be done
-        
+        # self.en_passant_square = None # This is the square where the en-passant can be done
     
-    @staticmethod
-    def simulate_move(current_all_pieces:list[Piece], piece:Piece, move_to:BoardLocation):
-        return current_all_pieces
-    
-    def get_piece_at_location(self, location:BoardLocation):
-        try:
-            for piece in self.all_pieces:
-                if piece.square == location:
-                    return piece
-            else:
-                return None
-        except AttributeError:
-            return None
-    
-    def attacking(self, square:BoardLocation): # Returns a list of pieces that are attacking the square
-        attacking_pieces = []
-        for piece in self.all_pieces:
-            for legal_move in piece.legal_moves:
-                if legal_move.type == "capture" and legal_move.move == square:
-                    attacking_pieces.append(piece)
-        return attacking_pieces
-
-    def deselect_square(self):
-        self.selected_square = None
-
-    def calculate_positions(self):
-        ranks = [int(self.x + j * self.size + self.size / 2) for j in range(8)]
-        files = [int(self.y + i * self.size + self.size / 2) for i in range(8)]
-
-        if self.perspective == "white":
-            files.reverse()
-        if self.perspective == "black":
-            ranks.reverse()
-        print(ranks, files)
-        return ranks, files
+    # @staticmethod
+    # def simulate_move(current_position:list[list[Piece]], piece:Piece|BoardLocation, move_to:BoardLocation):
+    #     return current_position
 
     @staticmethod
-    def make_pieces(pieces_dict:dict[str, dict], starting_configuration:list[list[str]], theme:int):
-        for piece_name in pieces_dict.keys():
-            if not piece_name.lower() == piece_name:
-                pieces_dict[piece_name.lower()] = pieces_dict.pop(piece_name) # Change the key to lowercase
-
-        pieces = []
+    def position_pieces(included_pieces:dict[str, dict], starting_configuration:list[list[str]], theme:int):
+        # Make sure included pieces has all the pieces in lowercase keys
+        position = [[None for _ in range(8)] for _ in range(8)]
         for rank in range(8):
             for file in range(8):
                 piece_name = starting_configuration[rank][file]
-                if piece_name is not None:
-                    pieces.append(Piece(**pieces_dict[piece_name.lower()], name=piece_name, square=BoardLocation(rank, file), colour="white" if piece_name.isupper() else "black", direction=1 if piece_name.isupper() else -1, theme=theme))
-        
-        return pieces
+                if piece_name is None:
+                    position[rank][file] = None
+                else:
+                    position[rank][file] = Piece(**included_pieces[piece_name.lower()], 
+                                                name=piece_name, 
+                                                square=BoardLocation(rank, file), 
+                                                colour="white" if piece_name.isupper() else "black",
+                                                direction=1 if piece_name.isupper() else -1,
+                                                theme=theme)
+        return position
+    
+    @staticmethod
+    def calculate_locations(x:int, y:int, size:int, perspective:str):
+        ranks = [int(x + j * size + size / 2) for j in range(8)]
+        files = [int(y + i * size + size / 2) for i in range(8)]
+
+        if perspective == "white":
+            files.reverse()
+        if perspective == "black":
+            ranks.reverse()
+        print(ranks, files)
+        return ranks, files
     
     def square_to_coordinates(self, square:BoardLocation):
         return (self.ranks_locations[square.get_file()], self.files_locations[square.get_rank()])
 
     def coordinates_to_square(self, coordinates: tuple[int, int]) -> BoardLocation:
         x, y = coordinates
-        # Find closest file and rank using ranges instead of exact indexing
-        file = next((f for f in range(8) if self.ranks_locations[f] - self.size / 2 <= x < self.ranks_locations[f] + self.size / 2), None)
-        rank = next((r for r in range(8) if self.files_locations[r] - self.size / 2 <= y < self.files_locations[r] + self.size / 2), None)
+        half_size = self.size / 2
+        file = next(
+            (f for f in range(8) if self.ranks_locations[f] - half_size <= x < self.ranks_locations[f] + half_size), None)
+        rank = next(
+            (r for r in range(8) if self.files_locations[r] - half_size <= y < self.files_locations[r] + half_size), None)
         return BoardLocation(rank, file) if rank is not None and file is not None else None
+
+    def get_piece_at_square(self, square:BoardLocation):
+        return self.position[square.get_rank()][square.get_file()]
+    
+    # def attacking(self, square:BoardLocation): # Returns a list of pieces that are attacking the square
+    #     flattened_position = [piece for row in self.position for piece in row if piece is not None]
+    #     attacking_pieces = []
+    #     for piece in flattened_position:
+    #         for legal_move in piece.legal_moves:
+    #             if legal_move.type == "capture" and legal_move.move == square:
+    #                 attacking_pieces.append(piece)
+    #     return attacking_pieces
 
     def get_position(self):
         # Gets the position (as in chess position) of the board and returns it as how starting_configuration is
         position_list = [[None for _ in range(8)] for _ in range(8)]
-        for piece in self.all_pieces:
-            for rank in range(8):
-                for file in range(8):
-                    if piece.square == BoardLocation(rank, file):
-                        position_list[rank][file] = piece.name
+        for rank in range(8):
+            for file in range(8):
+                if self.position[rank][file] == None:
+                    position_list[rank][file] = None
+                else:
+                    position_list[rank][file] = self.position[rank][file].name
         return position_list
 
     def get_fen(self, copy_to_clipboard:bool=False) -> str:
@@ -569,9 +564,9 @@ class ChessBoard:
             print(f"Copied FEN to clipboard: {fen_string}")
         return fen_string
     
-    def log_move(self, piece:Piece, move:BoardLocation, takes_piece:Piece = None): # Function made by kingsley
+    def log_move(self, piece:Piece, move:BoardLocation, takes_piece:Piece = None):
         self.moves_stack.append(Move(piece, piece.square, move, takes_piece))
-        print(f"Logged Move: {self.moves_stack}")
+        print(f"Move Log: {self.moves_stack}")
     
     def pop(self, amount_of_moves:int):
         print(f"Moving back {amount_of_moves} moves")
@@ -582,14 +577,14 @@ class ChessBoard:
                 break
             self.moves_stack = self.moves_stack[:-1] # Remove last move
             self.turn = "white" if self.turn == "black" else "black" # Switch turn back
-            piece = self.get_piece_at_location(last_move.to_square)
-            piece.unmove()
+            piece = self.get_piece_at_square(last_move.to_square)
             if last_move.captured_piece:
-                self.all_pieces.append(last_move.captured_piece)
-            print(f"Moved {last_move.piece.name} piece back. Moves: {self.moves_stack}")
+                self.position[last_move.to_square.get_rank()][last_move.to_square.get_file()] = last_move.captured_piece
+            piece.unmove()
+            print(f"Moved {last_move.piece.name} piece back.")
 
     def move(self, piece_location:BoardLocation, move:BoardLocation):
-        piece = self.get_piece_at_location(piece_location)
+        piece = self.get_piece_at_square(piece_location)
         if piece:
             if not piece.colour == self.turn:
                 print(f"Not your turn")
@@ -598,9 +593,7 @@ class ChessBoard:
                 if legal_move.move == move:
                     taken_piece = None
                     if "capture" in legal_move.type:
-                        taken_piece = self.get_piece_at_location(move)
-                        if taken_piece:
-                            self.all_pieces.remove(taken_piece)
+                        self.position[move.get_rank()][move.get_file()] = None # Remove the piece from the board
                     if "promotion" in legal_move.type:
                         piece.promote()
                     if "promotion" in legal_move.type:
@@ -619,13 +612,11 @@ class ChessBoard:
 
     def handle_click(self, mouse_pos:tuple[int, int]):
         clicked_square = self.coordinates_to_square(mouse_pos)
-
         if clicked_square is None:
-            self.deselect_square()
+            self.selected_square = None
             print(f"deselected because of click outside")
             return
-
-        piece = self.get_piece_at_location(clicked_square)
+        piece = self.get_piece_at_square(clicked_square)
         if piece:
             clicked_piece = piece
             if self.selected_square is not None:
@@ -640,29 +631,22 @@ class ChessBoard:
                     self.selected_square = clicked_square
         else:
             if not self.move(self.selected_square, clicked_square):
-                self.deselect_square()
+                self.selected_square = None
                 print("deselected square")
 
     def update(self):
-        # update the pieces
-        white_pieces_locations = []
-        black_pieces_locations = []
-        for piece in self.all_pieces: # get all the pieces locations
-            if piece.colour == "white":
-                white_pieces_locations.append(piece.square)
-            else:
-                black_pieces_locations.append(piece.square)
-        for piece in self.all_pieces:
+        flattened_position = [piece for row in self.position for piece in row if piece is not None]
+        white_pieces_locations = [p.square for p in flattened_position if p.colour == "white"]
+        black_pieces_locations = [p.square for p in flattened_position if p.colour == "black"]
+        for piece in flattened_position:
             if piece.colour == "white":
                 piece.update(black_pieces_locations, white_pieces_locations)
             else:
-                piece.update(white_pieces_locations, black_pieces_locations) 
-
-        # update selected square
-        for piece in self.all_pieces:
+                piece.update(white_pieces_locations, black_pieces_locations)
+        for piece in flattened_position:
             piece.selected = False
         if self.selected_square is not None:
-            piece = self.get_piece_at_location(self.selected_square)
+            piece = self.get_piece_at_square(self.selected_square)
             if piece:
                 piece.selected = True
     
@@ -695,7 +679,8 @@ class ChessBoard:
                         screen.blit(text, (self.ranks_locations[rank] + self.size / 2 - text.get_width(), self.files_locations[file] + self.size / 2 - text.get_height()))
         
         # draw the pieces and the legal moves of the selected piece
-        for piece in self.all_pieces:
+        flattened_position = [piece for row in self.position for piece in row if piece is not None]
+        for piece in flattened_position:
             piece.draw(screen, self.ranks_locations, self.files_locations, self.turn)
         
         # Print Turn
@@ -715,7 +700,7 @@ class ChessBoard:
             if self.selected_square is not None:
                 text = font.render(f"Selected: {self.selected_square}", True, RED)
                 screen.blit(text, (10, 65))
-                piece = self.get_piece_at_location(self.selected_square)
+                piece = self.get_piece_at_square(self.selected_square)
                 if piece:
                     text = font.render(f"Piece: {piece.square}", True, RED)
                     screen.blit(text, (10, 80))
@@ -725,15 +710,14 @@ class ChessBoard:
                         text = font.render(f"{i + 1}: {piece.legal_moves[i].move}, {piece.legal_moves[i].type}", True, RED)
                         screen.blit(text, (10, 110 + i * 15))
 
-def initialize_classic_game(x, y, size = BOARD_SIZE, starting_configuration = BOARD_CONFIG, theme = 1, play_start_sound = GAME_START_SOUND):
+def initialize_classic_game(x, y, size = BOARD_SIZE, starting_configuration = BOARD_NAME_CONFIG, theme = 1, play_start_sound = GAME_START_SOUND):
     play_start_sound.play()
     chessboard = ChessBoard(
         x=x,
         y=y,
         size=size,
         starting_configuration=starting_configuration,
-        turn="white",
-        pieces={
+        included_pieces={
             "p": {
                 "pattern": ClassicPiecesMovement.pawn_movement,
                 "attributes": {"can_double_move": True, "can_en_passant": True, "can_promotion": True},
