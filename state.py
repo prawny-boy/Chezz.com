@@ -10,6 +10,17 @@ SCREEN_WIDTH = settings["screen"]["width"]
 SCREEN_HEIGHT = settings["screen"]["height"]
 BLACK = settings["colors"]["black"]
 
+CAPTURE_SOUND = _pygame.mixer.Sound("Assets/Sounds/capture.wav")
+MOVE_SOUND = _pygame.mixer.Sound("Assets/Sounds/move.wav")
+CASTLE_SOUND = _pygame.mixer.Sound("Assets/Sounds/castle.wav")
+CHECK_SOUND = _pygame.mixer.Sound("Assets/Sounds/check.wav")
+PROMOTE_SOUND = _pygame.mixer.Sound("Assets/Sounds/promote.wav")
+GAME_START_SOUND = _pygame.mixer.Sound("Assets/Sounds/game-start.wav")
+GAME_END_SOUND = _pygame.mixer.Sound("Assets/Sounds/game-end.wav")
+TEN_SECONDS_SOUND = _pygame.mixer.Sound("Assets/Sounds/tenseconds.wav")
+NOTIFY_SOUND = _pygame.mixer.Sound("Assets/Sounds/notify.wav")
+ILLEGAL_SOUND = _pygame.mixer.Sound("Assets/Sounds/illegal.wav")
+
 class State:
     def __init__(self, manager, screen):
         self.manager = manager
@@ -156,8 +167,15 @@ class OptionsState(State):
         self.theme3_button.draw(self.screen)
 
 class ClassicChessGameState(State):
-    def __init__(self, manager, screen):
+    def __init__(self, manager, screen, sounds:dict[_pygame.mixer.Sound]={
+        "move": MOVE_SOUND,
+        "capture": CAPTURE_SOUND,
+        "promotion": PROMOTE_SOUND,
+        "start": GAME_START_SOUND,
+    }):
         super().__init__(manager, screen)
+        self.sounds = sounds
+        self.sounds["start"].play()
         self.chessboard = initialize_classic_game(SCREEN_WIDTH / 2 - BOARD_SIZE / 2 + 94, SCREEN_HEIGHT / 2 - BOARD_SIZE / 2, theme=self.get_variable("theme"))
         self.export_fen_button = Button(120, 440, 160, 60, "Export FEN", (0, 0, 255), (255, 255, 255), border_colour=(0, 0, 155))
         self.back_button = Button(120, 520, 160, 60, "Back", (255, 0, 0), (255, 255, 255), border_colour=(155, 0, 0))
@@ -165,7 +183,9 @@ class ClassicChessGameState(State):
     def handle_event(self, event):
         if event.type == _pygame.MOUSEBUTTONDOWN:
             mouse_pos = _pygame.mouse.get_pos()
-            self.chessboard.handle_click(mouse_pos)
+            outcome = self.chessboard.handle_click(mouse_pos)
+            if outcome is not None:
+                self.sounds[outcome].play()
             if self.back_button.is_hovered(mouse_pos):
                 self.manager.set_state(MenuState(self.manager, self.screen))
             if self.export_fen_button.is_hovered(event.pos):

@@ -22,17 +22,6 @@ MOVE_HIGHLIGHT = _pygame.Color("#5fa14460")
 CAPTURE_HIGHLIGHT = _pygame.Color("#d42a2a60")
 PROMOTION_HIGHLIGHT = _pygame.Color("#fff7005f")
 
-CAPTURE_SOUND = _pygame.mixer.Sound("Assets/Sounds/capture.wav")
-MOVE_SOUND = _pygame.mixer.Sound("Assets/Sounds/move.wav")
-CASTLE_SOUND = _pygame.mixer.Sound("Assets/Sounds/castle.wav")
-CHECK_SOUND = _pygame.mixer.Sound("Assets/Sounds/check.wav")
-PROMOTE_SOUND = _pygame.mixer.Sound("Assets/Sounds/promote.wav")
-GAME_START_SOUND = _pygame.mixer.Sound("Assets/Sounds/game-start.wav")
-GAME_END_SOUND = _pygame.mixer.Sound("Assets/Sounds/game-end.wav")
-TEN_SECONDS_SOUND = _pygame.mixer.Sound("Assets/Sounds/tenseconds.wav")
-NOTIFY_SOUND = _pygame.mixer.Sound("Assets/Sounds/notify.wav")
-ILLEGAL_SOUND = _pygame.mixer.Sound("Assets/Sounds/illegal.wav")
-
 BOARD_NAME_CONFIG = [
     ["R", "N", "B", "Q", "K", "B", "N", "R"],
     ["P", "P", "P", "P", "P", "P", "P", "P"],
@@ -408,18 +397,12 @@ class ChessBoard:
                  perspective:str = "white",
                  dark: _pygame.Color = BROWN,
                  light: _pygame.Color = BEIGE,
-                 theme: int = 1,
-                 move_sound: _pygame.mixer.Sound = MOVE_SOUND,
-                 capture_sound: _pygame.mixer.Sound = CAPTURE_SOUND,
-                 promotion_sound: _pygame.mixer.Sound = PROMOTE_SOUND): 
+                 theme: int = 1): 
         self.position:list[list[Piece]] = self.position_pieces(included_pieces, starting_configuration, theme) # Rows and columns of pieces
         self.turn = turn
         self.dark = dark
         self.light = light
         self.size = size / 8
-        self.move_sound = move_sound
-        self.capture_sound = capture_sound
-        self.promotion_sound = promotion_sound
         self.perspective = perspective
         self.ranks_locations, self.files_locations = self.calculate_locations(x, y, self.size, perspective)
         self.selected_square = None
@@ -570,6 +553,7 @@ class ChessBoard:
             moved_piece.unmove()
 
     def move(self, at: BoardLocation, to: BoardLocation):
+        event = False
         piece = self.get_piece_at_square(at)
         if piece:
             if not piece.colour == self.turn:
@@ -587,16 +571,15 @@ class ChessBoard:
 
                     if "promotion" in move.type:
                         piece.promote()
-                        self.promotion_sound.play()
+                        event = "promotion"
                     elif "capture" in move.type:
-                        self.capture_sound.play()
+                        event = "capture"
                     else:
-                        self.move_sound.play()
+                        event = "move"
 
                     self.log_move(piece, at, to, captured)
                     self.turn = "black" if self.turn == "white" else "white"
-                    return True
-        return False
+        return event
 
     def handle_click(self, mouse_pos: tuple[int, int]):
         clicked_square = self.coordinates_to_square(mouse_pos)
@@ -611,14 +594,21 @@ class ChessBoard:
                 if clicked_piece.colour == self.turn: # Select a new same team piece
                     self.selected_square = clicked_square
                 else: # Try to move to opponent's square (capture)
-                    if not self.move(self.selected_square, clicked_square):
+                    move_outcome = self.move(self.selected_square, clicked_square)
+                    if not move_outcome: # If the move was illegal
                         self.selected_square = clicked_square
+                    else:
+                        return move_outcome # Return the move outcome (move, capture, promotion)
             else: # Nothing selected yet, select this piece
                 self.selected_square = clicked_square
         else: # Case 2: Clicked on empty square
             if self.selected_square:
-                if not self.move(self.selected_square, clicked_square):
+                move_outcome = self.move(self.selected_square, clicked_square)
+                if not move_outcome:
                     self.selected_square = None
+                else:
+                    return move_outcome # Return the move outcome (move, capture, promotion)
+        return None
 
     def update(self):
         flattened_position = [piece for row in self.position for piece in row if piece is not None]
@@ -696,8 +686,7 @@ class ChessBoard:
                         text = font.render(f"{i + 1}: {piece.legal_moves[i].to}, {piece.legal_moves[i].type}", True, RED)
                         screen.blit(text, (10, 110 + i * 15))
 
-def initialize_classic_game(x, y, size = BOARD_SIZE, starting_configuration = BOARD_NAME_CONFIG, theme = 1, play_start_sound = GAME_START_SOUND):
-    play_start_sound.play()
+def initialize_classic_game(x, y, size = BOARD_SIZE, starting_configuration = BOARD_NAME_CONFIG, theme = 1):
     chessboard = ChessBoard(
         x=x,
         y=y,
