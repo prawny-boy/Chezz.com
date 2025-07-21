@@ -212,7 +212,7 @@ class Piece:
         self.attributes = PIECE_DEFAULT_ATTRIBUTES.copy()
         if attributes: self.attributes.update(attributes) # this changes values of attributes if they are provided
         self.selected = False
-        self.square_log:list[BoardLocation] = []
+        self.times_moved:int = 0
     
     def try_get_automatic_sprite(self, name:str, colour:str):
         try:
@@ -289,7 +289,7 @@ class Piece:
         
         # Double Moving
         double_movement_legal_moves = []
-        if self.attributes["can_double_move"] and len(self.square_log) == 0:
+        if self.attributes["can_double_move"] and self.times_moved == 0:
             for move in self.legal_moves:
                 if "capture" in move.type: continue # Do not double move if the piece can capture
                 double_movement = self.pattern.update_to_position(move.to, self.direction)
@@ -302,15 +302,6 @@ class Piece:
         if self.attributes["can_promotion"]:
             for move in self.legal_moves:
                 if move.to.rank == (7 if self.colour == "white" else 0): move.type = move.type + "-promotion"
-
-    def move(self, new_square:BoardLocation):
-        self.square_log.append(self.square) # log the previous square
-        self.square = new_square # Move the piece to the new square
-    
-    def unmove(self): 
-        # Unmove the piece to the previous square
-        if self.square_log:
-            self.square = self.square_log.pop()
     
     def promote(self):
         """
@@ -550,7 +541,8 @@ class ChessBoard:
             self.position[last_move.at.rank][last_move.at.file] = moved_piece
             if last_move.captured:
                 self.position[last_move.to.rank][last_move.to.file] = last_move.captured
-            moved_piece.unmove()
+            moved_piece.square = last_move.at
+            moved_piece.times_moved -= 1
 
     def move(self, at: BoardLocation, to: BoardLocation):
         event = False
@@ -566,7 +558,8 @@ class ChessBoard:
                         self.position[to.rank][to.file] = None
 
                     self.position[at.rank][at.file] = None
-                    piece.move(to)
+                    piece.square = to
+                    piece.times_moved += 1
                     self.position[to.rank][to.file] = piece
 
                     if "promotion" in move.type:
