@@ -173,7 +173,7 @@ class ClassicChessGameState(State):
         if event.type == _pygame.KEYDOWN:
             if event.key == _pygame.K_LEFT:
                 self.chessboard.pop(1)
-                self.chessboard.deselect_square()
+                self.chessboard.selected_square = None
     
     def update(self):
         self.chessboard.update()
